@@ -1,0 +1,880 @@
+/**
+ * メラジム予約システム - GASバックエンド
+ *
+ * スプレッドシートをデータベースとして使用し、
+ * ウェブアプリとしてデプロイしてNext.jsフロントエンドからHTTP経由でアクセスする。
+ *
+ * シート構成:
+ *   stores, trainers, trainer_stores, customers, bookings, availability_cache
+ */
+
+// ---------- 定数 ----------
+var SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+var API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
+
+// ---------- エントリポイント ----------
+
+function doPost(e) {
+  try {
+    // GASエディタからの直接実行対策（eが未定義の場合）
+    if (!e || !e.postData) {
+      return jsonResponse_({ error: 'POSTリクエストが必要です。GASエディタからは実行できません。' }, 400);
+    }
+    var payload = JSON.parse(e.postData.contents);
+
+    // APIキー認証
+    if (payload.apiKey !== API_KEY) {
+      return jsonResponse_({ error: '認証に失敗しました' }, 401);
+    }
+
+    var action = payload.action;
+    var params = payload.params || {};
+
+    var handlers = {
+      'getStores': getStores_,
+      'getTrainers': getTrainers_,
+      'getTrainersFull': getTrainersFull_,
+      'createBooking': createBooking_,
+      'cancelBooking': cancelBooking_,
+      'getBookings': getBookings_,
+      'getStats': getStats_,
+      'updateTrainer': updateTrainer_,
+      'addTrainer': addTrainer_,
+      'updateStore': updateStore_,
+      'getCustomerByLineUid': getCustomerByLineUid_,
+      'upsertCustomer': upsertCustomer_,
+      'getBookingById': getBookingById_,
+      'getBookingCountsForTrainers': getBookingCountsForTrainers_,
+      'getTrainerStoresByStore': getTrainerStoresByStore_,
+      'getAvailabilityCache': getAvailabilityCache_,
+      'upsertAvailabilityCache': upsertAvailabilityCache_,
+      'deleteAvailabilityCache': deleteAvailabilityCache_,
+    };
+
+    var handler = handlers[action];
+    if (!handler) {
+      return jsonResponse_({ error: '不明なアクション: ' + action }, 400);
+    }
+
+    var result = handler(params);
+    return jsonResponse_(result, 200);
+  } catch (err) {
+    Logger.log('doPost error: ' + err.message + '\n' + err.stack);
+    return jsonResponse_({ error: 'サーバーエラー: ' + err.message }, 500);
+  }
+}
+
+function doGet(e) {
+  return jsonResponse_({ status: 'ok', message: 'メラジム GAS API is running' }, 200);
+}
+
+/**
+ * GASエディタから実行してシート接続をテストする関数
+ */
+function testConnection() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheets = ss.getSheets().map(function(s) { return s.getName(); });
+  Logger.log('接続成功! シート一覧: ' + sheets.join(', '));
+  Logger.log('API_KEY設定: ' + (API_KEY ? 'あり' : 'なし'));
+  return sheets;
+}
+
+/**
+ * 初期シートを自動作成する関数（初回セットアップ用）
+ */
+function setupSheets() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheetConfigs = {
+    'stores': ['id', 'name', 'area', 'address', 'google_calendar_id', 'business_hours_json', 'is_active'],
+    'trainers': ['id', 'name', 'email', 'phone', 'photo_url', 'specialties_json', 'bio', 'is_first_visit_eligible', 'is_active', 'google_calendar_id', 'available_hours_json'],
+    'trainer_stores': ['trainer_id', 'store_id', 'buffer_minutes'],
+    'customers': ['id', 'line_uid', 'name', 'email', 'phone', 'age_group', 'is_first_visit_completed'],
+    'bookings': ['id', 'customer_id', 'trainer_id', 'store_id', 'scheduled_at', 'duration_minutes', 'booking_type', 'status', 'google_calendar_event_id', 'notes', 'cancelled_at', 'cancel_reason', 'created_at'],
+    'availability_cache': ['trainer_id', 'store_id', 'date', 'slots_json', 'fetched_at']
+  };
+
+  for (var name in sheetConfigs) {
+    var existing = ss.getSheetByName(name);
+    if (!existing) {
+      var sheet = ss.insertSheet(name);
+      sheet.getRange(1, 1, 1, sheetConfigs[name].length).setValues([sheetConfigs[name]]);
+      sheet.getRange(1, 1, 1, sheetConfigs[name].length).setFontWeight('bold');
+      Logger.log('シート作成: ' + name);
+    } else {
+      Logger.log('シート既存: ' + name);
+    }
+  }
+
+  // デフォルトの「シート1」を削除
+  var sheet1 = ss.getSheetByName('シート1');
+  if (sheet1 && ss.getSheets().length > 1) {
+    ss.deleteSheet(sheet1);
+    Logger.log('「シート1」を削除しました');
+  }
+
+  Logger.log('セットアップ完了!');
+}
+
+// ---------- ヘルパー ----------
+
+function jsonResponse_(data, statusCode) {
+  // GAS doPost は常に200を返すが、body内にstatusCodeを含める
+  var output = ContentService.createTextOutput(
+    JSON.stringify({ statusCode: statusCode, data: data })
+  );
+  output.setMimeType(ContentService.MimeType.JSON);
+  return output;
+}
+
+function getSheet_(name) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  return ss.getSheetByName(name);
+}
+
+/**
+ * シートの全データをオブジェクト配列として取得
+ */
+function getAllRows_(sheetName) {
+  var sheet = getSheet_(sheetName);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  var headers = data[0];
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = data[i][j];
+    }
+    rows.push(obj);
+  }
+  return rows;
+}
+
+/**
+ * シートの特定行を更新（idカラムで検索）
+ */
+function updateRowById_(sheetName, id, updates) {
+  var sheet = getSheet_(sheetName);
+  if (!sheet) return false;
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var idCol = headers.indexOf('id');
+  if (idCol === -1) return false;
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][idCol] === id) {
+      for (var key in updates) {
+        var col = headers.indexOf(key);
+        if (col !== -1) {
+          var value = updates[key];
+          // JSONフィールドは文字列化して保存
+          if (typeof value === 'object' && value !== null) {
+            value = JSON.stringify(value);
+          }
+          sheet.getRange(i + 1, col + 1).setValue(value);
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * シートに行を追加
+ */
+function appendRow_(sheetName, rowObj) {
+  var sheet = getSheet_(sheetName);
+  if (!sheet) throw new Error('シートが見つかりません: ' + sheetName);
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var row = [];
+  for (var i = 0; i < headers.length; i++) {
+    var val = rowObj[headers[i]];
+    if (val === undefined || val === null) {
+      row.push('');
+    } else if (typeof val === 'object') {
+      row.push(JSON.stringify(val));
+    } else {
+      row.push(val);
+    }
+  }
+  sheet.appendRow(row);
+}
+
+/**
+ * JSONフィールドをパース
+ */
+function parseJsonField_(value) {
+  if (!value || value === '') return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return value;
+  }
+}
+
+/**
+ * storeの行をパース
+ */
+function parseStore_(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    area: row.area,
+    address: row.address || '',
+    google_calendar_id: row.google_calendar_id,
+    business_hours: parseJsonField_(row.business_hours_json) || {},
+    is_active: row.is_active === true || row.is_active === 'TRUE' || row.is_active === 'true',
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+  };
+}
+
+/**
+ * trainerの行をパース
+ */
+function parseTrainer_(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email || null,
+    phone: row.phone || null,
+    photo_url: row.photo_url || null,
+    specialties: parseJsonField_(row.specialties_json) || [],
+    bio: row.bio || '',
+    is_first_visit_eligible: row.is_first_visit_eligible === true || row.is_first_visit_eligible === 'TRUE' || row.is_first_visit_eligible === 'true',
+    is_active: row.is_active === true || row.is_active === 'TRUE' || row.is_active === 'true',
+    google_calendar_id: row.google_calendar_id || null,
+    available_hours: parseJsonField_(row.available_hours_json) || { start: '09:00', end: '21:00' },
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+  };
+}
+
+/**
+ * bookingの行をパース
+ */
+function parseBooking_(row) {
+  return {
+    id: row.id,
+    customer_id: row.customer_id,
+    trainer_id: row.trainer_id,
+    store_id: row.store_id,
+    scheduled_at: row.scheduled_at,
+    duration_minutes: Number(row.duration_minutes) || 60,
+    booking_type: row.booking_type,
+    status: row.status,
+    google_calendar_event_id: row.google_calendar_event_id || null,
+    notes: row.notes || null,
+    cancelled_at: row.cancelled_at || null,
+    cancel_reason: row.cancel_reason || null,
+    created_at: row.created_at || '',
+  };
+}
+
+// ---------- アクションハンドラ ----------
+
+/**
+ * 店舗一覧取得
+ */
+function getStores_(params) {
+  var rows = getAllRows_('stores');
+  var stores = rows.map(parseStore_);
+
+  if (params.activeOnly) {
+    stores = stores.filter(function(s) { return s.is_active; });
+  }
+
+  // 名前順ソート
+  stores.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  return { stores: stores };
+}
+
+/**
+ * トレーナー一覧取得（公開API用 - 店舗で絞り込み）
+ */
+function getTrainers_(params) {
+  var storeId = params.storeId;
+  var firstVisitOnly = params.firstVisitOnly === true || params.firstVisitOnly === 'true';
+
+  // trainer_stores から該当店舗のトレーナーIDを取得
+  var trainerStoreRows = getAllRows_('trainer_stores');
+  var trainerIds = trainerStoreRows
+    .filter(function(ts) { return ts.store_id === storeId; })
+    .map(function(ts) { return ts.trainer_id; });
+
+  if (trainerIds.length === 0) return { trainers: [] };
+
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+  var trainers = allTrainers.filter(function(t) {
+    if (trainerIds.indexOf(t.id) === -1) return false;
+    if (!t.is_active) return false;
+    if (firstVisitOnly && !t.is_first_visit_eligible) return false;
+    return true;
+  });
+
+  // 公開用フィールドのみ返す
+  var result = trainers.map(function(t) {
+    return {
+      id: t.id,
+      name: t.name,
+      photo_url: t.photo_url,
+      specialties: t.specialties,
+      bio: t.bio,
+      is_first_visit_eligible: t.is_first_visit_eligible,
+    };
+  });
+
+  result.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  return { trainers: result };
+}
+
+/**
+ * トレーナー一覧取得（管理API用 - 全情報 + 紐づき店舗）
+ */
+function getTrainersFull_(params) {
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+  var trainerStoreRows = getAllRows_('trainer_stores');
+  var allStores = getAllRows_('stores').map(parseStore_);
+
+  var storeMap = {};
+  allStores.forEach(function(s) { storeMap[s.id] = s.name; });
+
+  var trainers = allTrainers.map(function(t) {
+    var stores = trainerStoreRows
+      .filter(function(ts) { return ts.trainer_id === t.id; })
+      .map(function(ts) {
+        return { store_id: ts.store_id, store_name: storeMap[ts.store_id] || '' };
+      });
+    t.stores = stores;
+    return t;
+  });
+
+  trainers.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  return { trainers: trainers };
+}
+
+/**
+ * 予約作成（LockServiceでダブルブッキング防止）
+ */
+function createBooking_(params) {
+  var lock = LockService.getScriptLock();
+  try {
+    // 30秒待ってロック取得
+    lock.waitLock(30000);
+  } catch (e) {
+    return { success: false, error: 'この枠は他の方が予約手続き中です。しばらくしてからお試しください' };
+  }
+
+  try {
+    var data = params;
+
+    // 同一トレーナー・同一時刻の重複チェック
+    var bookings = getAllRows_('bookings');
+    var duplicate = bookings.some(function(b) {
+      return b.trainer_id === data.trainer_id &&
+             b.store_id === data.store_id &&
+             b.scheduled_at === data.scheduled_at &&
+             b.status === 'confirmed';
+    });
+
+    if (duplicate) {
+      return { success: false, error: 'この時間枠は既に予約済みです。別の時間をお選びください' };
+    }
+
+    var bookingId = Utilities.getUuid();
+    var now = new Date().toISOString();
+
+    var booking = {
+      id: bookingId,
+      customer_id: data.customer_id,
+      trainer_id: data.trainer_id,
+      store_id: data.store_id,
+      scheduled_at: data.scheduled_at,
+      duration_minutes: data.duration_minutes || 60,
+      booking_type: data.booking_type,
+      status: 'confirmed',
+      google_calendar_event_id: data.google_calendar_event_id || '',
+      notes: data.notes || '',
+      cancelled_at: '',
+      cancel_reason: '',
+      created_at: now,
+    };
+
+    appendRow_('bookings', booking);
+
+    return { success: true, booking: parseBooking_(booking) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * 予約キャンセル
+ */
+function cancelBooking_(params) {
+  var bookingId = params.bookingId;
+  var reason = params.reason || '';
+
+  var bookings = getAllRows_('bookings');
+  var booking = null;
+  for (var i = 0; i < bookings.length; i++) {
+    if (bookings[i].id === bookingId) {
+      booking = bookings[i];
+      break;
+    }
+  }
+
+  if (!booking) {
+    return { success: false, error: '予約が見つかりません' };
+  }
+
+  if (booking.status !== 'confirmed') {
+    return { success: false, error: 'この予約はキャンセルできません' };
+  }
+
+  var now = new Date().toISOString();
+  updateRowById_('bookings', bookingId, {
+    status: 'cancelled',
+    cancelled_at: now,
+    cancel_reason: reason,
+  });
+
+  // store情報を取得してカレンダーID返却
+  var stores = getAllRows_('stores');
+  var store = null;
+  for (var j = 0; j < stores.length; j++) {
+    if (stores[j].id === booking.store_id) {
+      store = parseStore_(stores[j]);
+      break;
+    }
+  }
+
+  return {
+    success: true,
+    booking: parseBooking_(booking),
+    store_google_calendar_id: store ? store.google_calendar_id : null,
+  };
+}
+
+/**
+ * 予約一覧取得（管理用・ページネーション付き）
+ */
+function getBookings_(params) {
+  var limit = Math.min(Number(params.limit) || 50, 100);
+  var page = Math.max(Number(params.page) || 1, 1);
+  var offset = (page - 1) * limit;
+
+  var allBookings = getAllRows_('bookings').map(parseBooking_);
+  var allCustomers = getAllRows_('customers');
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+  var allStores = getAllRows_('stores').map(parseStore_);
+
+  // 名前マップ作成
+  var customerMap = {};
+  allCustomers.forEach(function(c) { customerMap[c.id] = c.name; });
+  var trainerMap = {};
+  allTrainers.forEach(function(t) { trainerMap[t.id] = t.name; });
+  var storeMap = {};
+  allStores.forEach(function(s) { storeMap[s.id] = s.name; });
+
+  // 日付降順ソート
+  allBookings.sort(function(a, b) {
+    return b.scheduled_at.localeCompare(a.scheduled_at);
+  });
+
+  var totalCount = allBookings.length;
+  var paged = allBookings.slice(offset, offset + limit);
+
+  var bookings = paged.map(function(b) {
+    return {
+      id: b.id,
+      scheduled_at: b.scheduled_at,
+      duration_minutes: b.duration_minutes,
+      status: b.status,
+      booking_type: b.booking_type,
+      customer_name: customerMap[b.customer_id] || '-',
+      trainer_name: trainerMap[b.trainer_id] || '-',
+      store_name: storeMap[b.store_id] || '-',
+    };
+  });
+
+  return {
+    bookings: bookings,
+    pagination: {
+      page: page,
+      limit: limit,
+      totalCount: totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    },
+  };
+}
+
+/**
+ * 統計取得
+ */
+function getStats_(params) {
+  var allBookings = getAllRows_('bookings').map(parseBooking_);
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+  var allStores = getAllRows_('stores').map(parseStore_);
+
+  var now = new Date();
+  var todayStr = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy-MM-dd');
+
+  // 今週の月曜日を計算
+  var weekStart = new Date(now);
+  var dayOfWeek = weekStart.getDay();
+  var mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  weekStart.setDate(weekStart.getDate() + mondayOffset);
+  weekStart.setHours(0, 0, 0, 0);
+  var weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  // 今月
+  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+  var todayBookings = 0;
+  var weekBookings = 0;
+  var monthBookings = 0;
+  var monthCancelled = 0;
+
+  allBookings.forEach(function(b) {
+    var bookingDate = new Date(b.scheduled_at);
+    var dateStr = Utilities.formatDate(bookingDate, 'Asia/Tokyo', 'yyyy-MM-dd');
+
+    if (b.status === 'confirmed') {
+      if (dateStr === todayStr) todayBookings++;
+      if (bookingDate >= weekStart && bookingDate < weekEnd) weekBookings++;
+      if (bookingDate >= monthStart && bookingDate <= monthEnd) monthBookings++;
+    }
+
+    if (b.status === 'cancelled') {
+      var createdDate = new Date(b.created_at);
+      if (createdDate >= monthStart) monthCancelled++;
+    }
+  });
+
+  var activeTrainers = allTrainers.filter(function(t) { return t.is_active; }).length;
+  var activeStores = allStores.filter(function(s) { return s.is_active; }).length;
+  var totalMonth = monthBookings + monthCancelled;
+  var cancelRate = totalMonth > 0 ? (monthCancelled / totalMonth) * 100 : 0;
+
+  return {
+    todayBookings: todayBookings,
+    weekBookings: weekBookings,
+    monthBookings: monthBookings,
+    activeTrainers: activeTrainers,
+    activeStores: activeStores,
+    cancelRate: cancelRate,
+  };
+}
+
+/**
+ * トレーナー更新
+ */
+function updateTrainer_(params) {
+  var id = params.id;
+  var updates = params.updates || {};
+
+  // JSONフィールドのマッピング
+  if (updates.specialties !== undefined) {
+    updates.specialties_json = updates.specialties;
+    delete updates.specialties;
+  }
+  if (updates.available_hours !== undefined) {
+    updates.available_hours_json = updates.available_hours;
+    delete updates.available_hours;
+  }
+  updates.updated_at = new Date().toISOString();
+
+  var success = updateRowById_('trainers', id, updates);
+  return { success: success };
+}
+
+/**
+ * トレーナー追加
+ */
+function addTrainer_(params) {
+  var id = Utilities.getUuid();
+  var now = new Date().toISOString();
+
+  var trainer = {
+    id: id,
+    name: params.name,
+    email: params.email || '',
+    phone: params.phone || '',
+    photo_url: params.photo_url || '',
+    specialties_json: JSON.stringify(params.specialties || []),
+    bio: params.bio || '',
+    is_first_visit_eligible: params.is_first_visit_eligible || false,
+    is_active: true,
+    google_calendar_id: params.google_calendar_id || '',
+    available_hours_json: JSON.stringify(params.available_hours || { start: '09:00', end: '21:00' }),
+    created_at: now,
+    updated_at: now,
+  };
+
+  appendRow_('trainers', trainer);
+
+  // 対応店舗の紐付け
+  if (params.store_ids && params.store_ids.length > 0) {
+    params.store_ids.forEach(function(storeId) {
+      appendRow_('trainer_stores', {
+        trainer_id: id,
+        store_id: storeId,
+        buffer_minutes: 30,
+      });
+    });
+  }
+
+  return { success: true, id: id };
+}
+
+/**
+ * 店舗更新
+ */
+function updateStore_(params) {
+  var id = params.id;
+  var updates = params.updates || {};
+
+  // JSONフィールドのマッピング
+  if (updates.business_hours !== undefined) {
+    updates.business_hours_json = updates.business_hours;
+    delete updates.business_hours;
+  }
+  updates.updated_at = new Date().toISOString();
+
+  var success = updateRowById_('stores', id, updates);
+  return { success: success };
+}
+
+/**
+ * LINE UIDで顧客検索
+ */
+function getCustomerByLineUid_(params) {
+  var lineUid = params.line_uid;
+  var customers = getAllRows_('customers');
+  for (var i = 0; i < customers.length; i++) {
+    if (customers[i].line_uid === lineUid) {
+      return { customer: customers[i] };
+    }
+  }
+  return { customer: null };
+}
+
+/**
+ * 顧客作成/更新
+ */
+function upsertCustomer_(params) {
+  var customerId = params.id;
+  var data = params.data;
+
+  if (customerId) {
+    // 更新
+    updateRowById_('customers', customerId, data);
+    return { success: true, id: customerId };
+  }
+
+  // 新規作成
+  var id = Utilities.getUuid();
+  var now = new Date().toISOString();
+  var customer = {
+    id: id,
+    line_uid: data.line_uid || '',
+    name: data.name || '',
+    email: data.email || '',
+    phone: data.phone || '',
+    age_group: data.age_group || '',
+    is_first_visit_completed: false,
+    created_at: now,
+    updated_at: now,
+  };
+
+  appendRow_('customers', customer);
+  return { success: true, id: id };
+}
+
+/**
+ * 予約IDで予約取得（カレンダーID付き）
+ */
+function getBookingById_(params) {
+  var bookingId = params.bookingId;
+  var bookings = getAllRows_('bookings');
+  var booking = null;
+  for (var i = 0; i < bookings.length; i++) {
+    if (bookings[i].id === bookingId) {
+      booking = parseBooking_(bookings[i]);
+      break;
+    }
+  }
+
+  if (!booking) return { booking: null };
+
+  // store情報も付与
+  var stores = getAllRows_('stores');
+  var store = null;
+  for (var j = 0; j < stores.length; j++) {
+    if (stores[j].id === booking.store_id) {
+      store = parseStore_(stores[j]);
+      break;
+    }
+  }
+
+  return {
+    booking: booking,
+    store_google_calendar_id: store ? store.google_calendar_id : null,
+  };
+}
+
+/**
+ * トレーナー別予約件数取得（稼働率均等化用）
+ */
+function getBookingCountsForTrainers_(params) {
+  var trainerIds = params.trainerIds;
+  var startDate = params.startDate;
+  var endDate = params.endDate;
+
+  var bookings = getAllRows_('bookings').map(parseBooking_);
+  var counts = {};
+  trainerIds.forEach(function(id) { counts[id] = 0; });
+
+  bookings.forEach(function(b) {
+    if (trainerIds.indexOf(b.trainer_id) !== -1 &&
+        b.status === 'confirmed' &&
+        b.scheduled_at >= startDate &&
+        b.scheduled_at < endDate) {
+      counts[b.trainer_id] = (counts[b.trainer_id] || 0) + 1;
+    }
+  });
+
+  return { counts: counts };
+}
+
+/**
+ * 店舗に紐づくトレーナー情報取得（空き枠計算用）
+ */
+function getTrainerStoresByStore_(params) {
+  var storeId = params.storeId;
+  var trainerStoreRows = getAllRows_('trainer_stores');
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+
+  var trainerMap = {};
+  allTrainers.forEach(function(t) { trainerMap[t.id] = t; });
+
+  var results = trainerStoreRows
+    .filter(function(ts) { return ts.store_id === storeId; })
+    .map(function(ts) {
+      return {
+        trainer_id: ts.trainer_id,
+        store_id: ts.store_id,
+        buffer_minutes: Number(ts.buffer_minutes) || 0,
+        trainer: trainerMap[ts.trainer_id] || null,
+      };
+    })
+    .filter(function(ts) { return ts.trainer !== null; });
+
+  return { trainerStores: results };
+}
+
+/**
+ * 空き枠キャッシュ取得
+ */
+function getAvailabilityCache_(params) {
+  var trainerId = params.trainer_id;
+  var storeId = params.store_id;
+  var date = params.date;
+
+  var rows = getAllRows_('availability_cache');
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].trainer_id === trainerId &&
+        rows[i].store_id === storeId &&
+        rows[i].date === date) {
+      return {
+        cache: {
+          slots: parseJsonField_(rows[i].slots),
+          fetched_at: rows[i].fetched_at,
+        },
+      };
+    }
+  }
+  return { cache: null };
+}
+
+/**
+ * 空き枠キャッシュ保存/更新
+ */
+function upsertAvailabilityCache_(params) {
+  var trainerId = params.trainer_id;
+  var storeId = params.store_id;
+  var date = params.date;
+  var slots = params.slots;
+  var fetchedAt = params.fetched_at;
+
+  var sheet = getSheet_('availability_cache');
+  if (!sheet) throw new Error('availability_cacheシートが見つかりません');
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var trainerIdCol = headers.indexOf('trainer_id');
+  var storeIdCol = headers.indexOf('store_id');
+  var dateCol = headers.indexOf('date');
+
+  // 既存行を検索
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][trainerIdCol] === trainerId &&
+        data[i][storeIdCol] === storeId &&
+        data[i][dateCol] === date) {
+      // 更新
+      var slotsCol = headers.indexOf('slots');
+      var fetchedAtCol = headers.indexOf('fetched_at');
+      sheet.getRange(i + 1, slotsCol + 1).setValue(JSON.stringify(slots));
+      sheet.getRange(i + 1, fetchedAtCol + 1).setValue(fetchedAt);
+      return { success: true };
+    }
+  }
+
+  // 新規追加
+  appendRow_('availability_cache', {
+    id: Utilities.getUuid(),
+    trainer_id: trainerId,
+    store_id: storeId,
+    date: date,
+    slots: JSON.stringify(slots),
+    fetched_at: fetchedAt,
+  });
+
+  return { success: true };
+}
+
+/**
+ * 空き枠キャッシュ削除
+ */
+function deleteAvailabilityCache_(params) {
+  var trainerId = params.trainer_id;
+  var storeId = params.store_id;
+  var date = params.date;
+
+  var sheet = getSheet_('availability_cache');
+  if (!sheet) return { success: true };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var trainerIdCol = headers.indexOf('trainer_id');
+  var storeIdCol = headers.indexOf('store_id');
+  var dateCol = headers.indexOf('date');
+
+  // 下から削除（行番号のずれ防止）
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (data[i][trainerIdCol] === trainerId &&
+        data[i][storeIdCol] === storeId &&
+        data[i][dateCol] === date) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+
+  return { success: true };
+}

@@ -1,0 +1,291 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import type { Store } from '@/types/database';
+
+interface EditStoreForm {
+  name: string;
+  area: string;
+  address: string;
+  google_calendar_id: string;
+}
+
+export default function StoresPage() {
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingStore, setEditingStore] = useState<Store | null>(null);
+  const [editForm, setEditForm] = useState<EditStoreForm>({ name: '', area: '', address: '', google_calendar_id: '' });
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const loadStores = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    fetch('/api/admin/stores')
+      .then((r) => {
+        if (!r.ok) throw new Error('店舗情報の取得に失敗しました');
+        return r.json();
+      })
+      .then((data) => {
+        setStores(data.stores ?? []);
+      })
+      .catch((err: Error) => {
+        setError(err.message || 'データの取得に失敗しました');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadStores();
+  }, [loadStores]);
+
+  function openEdit(store: Store) {
+    setEditingStore(store);
+    setEditForm({
+      name: store.name,
+      area: store.area,
+      address: store.address || '',
+      google_calendar_id: store.google_calendar_id || '',
+    });
+    setEditError(null);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingStore) return;
+    setEditError(null);
+
+    if (!editForm.name.trim()) {
+      setEditError('店舗名は必須です');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/stores', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingStore.id,
+          name: editForm.name.trim(),
+          area: editForm.area.trim(),
+          address: editForm.address.trim(),
+          google_calendar_id: editForm.google_calendar_id.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const result = await res.json();
+        setEditError(result.error || '更新に失敗しました');
+        return;
+      }
+      setEditingStore(null);
+      loadStores();
+    } catch {
+      setEditError('通信エラーが発生しました');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleStoreActive(store: Store) {
+    try {
+      const res = await fetch('/api/admin/stores', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: store.id, is_active: !store.is_active }),
+      });
+      if (!res.ok) throw new Error();
+      setStores((prev) =>
+        prev.map((s) => (s.id === store.id ? { ...s, is_active: !s.is_active } : s))
+      );
+    } catch {
+      alert('稼働状況の更新に失敗しました');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <div className="mela-spinner" />
+        <p className="text-sm text-[#606060]">読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-[#ef4444] font-medium">{error}</p>
+        <button onClick={loadStores} className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all">
+          再読み込み
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-black">店舗管理</h1>
+          <p className="text-sm text-[#606060] mt-1">{stores.length}店舗</p>
+        </div>
+      </div>
+
+      {/* 編集モーダル */}
+      {editingStore && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
+              <h2 className="font-bold text-black text-lg">店舗編集</h2>
+              <button
+                onClick={() => setEditingStore(null)}
+                className="text-[#606060] hover:text-black text-xl leading-none"
+              >
+                x
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
+              {editError && (
+                <div className="bg-[#fef2f2] text-[#ef4444] text-sm px-4 py-3">
+                  {editError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                  店舗名 <span className="text-[#ef4444]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">エリア</label>
+                <input
+                  type="text"
+                  value={editForm.area}
+                  onChange={(e) => setEditForm((p) => ({ ...p, area: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">住所</label>
+                <input
+                  type="text"
+                  value={editForm.address}
+                  onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">Google Calendar ID</label>
+                <input
+                  type="text"
+                  value={editForm.google_calendar_id}
+                  onChange={(e) => setEditForm((p) => ({ ...p, google_calendar_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                  placeholder="example@group.calendar.google.com"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
+                <button
+                  type="button"
+                  onClick={() => setEditingStore(null)}
+                  className="flex-1 py-2.5 text-sm font-medium text-[#4d4d4d] bg-[#f0f0f0] rounded-full hover:bg-[#d9d9d9] transition-all"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-2.5 text-sm font-bold text-black bg-[#ff5000] rounded-full hover:bg-[#e64800] hover:scale-[1.02] disabled:opacity-50 transition-all"
+                >
+                  {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="mela-spinner-sm" />
+                      保存中...
+                    </span>
+                  ) : '保存する'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 店舗カード一覧 */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {stores.map((store) => (
+          <div key={store.id} className="bg-white border border-[#d9d9d9] p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-black text-lg">{store.name}</h3>
+                <p className="text-sm text-[#606060]">{store.area}</p>
+              </div>
+              <span className={`text-xs px-2 py-1 font-medium
+                ${store.is_active ? 'bg-[#f0fdf4] text-[#22c55e]' : 'bg-[#f0f0f0] text-[#606060]'}`}>
+                {store.is_active ? '稼働中' : '停止中'}
+              </span>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-[#606060]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span>{store.address || '住所未設定'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[#606060]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span className={store.google_calendar_id ? 'text-[#22c55e]' : 'text-[#ef4444]'}>
+                  {store.google_calendar_id ? 'カレンダー連携済み' : 'カレンダー未設定'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-[#d9d9d9] flex gap-2">
+              <button
+                onClick={() => openEdit(store)}
+                className="flex-1 py-2 text-sm font-medium text-[#ff5000] bg-[#fff5f0] hover:bg-[#ffe8db] transition-colors"
+              >
+                編集
+              </button>
+              <button
+                onClick={() => toggleStoreActive(store)}
+                className={`flex-1 py-2 text-sm font-medium transition-colors
+                  ${store.is_active
+                    ? 'text-[#ff5000] bg-[#fff5f0] hover:bg-[#ffe8db]'
+                    : 'text-[#22c55e] bg-[#f0fdf4] hover:bg-[#dcfce7]'
+                  }`}
+              >
+                {store.is_active ? '停止する' : '稼働する'}
+              </button>
+            </div>
+          </div>
+        ))}
+        {stores.length === 0 && (
+          <div className="col-span-full text-center py-12 text-[#606060]">
+            店舗が登録されていません
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

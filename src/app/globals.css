@@ -2,25 +2,177 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
+  --mela-primary: #ff5000;
+  --mela-primary-hover: #e64800;
+  --mela-bg: #ffffff;
+  --mela-bg-secondary: #f0f0f0;
+  --mela-text-dark: #000000;
+  --mela-text: #4d4d4d;
+  --mela-text-light: #606060;
+  --mela-border: #d9d9d9;
+  --mela-inactive: #d9d9d9;
+  --mela-success: #22c55e;
+  --mela-error: #ef4444;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-mela: var(--mela-primary);
+  --color-mela-hover: var(--mela-primary-hover);
+  --font-sans: 'Noto Sans JP', sans-serif;
+  --font-heading: 'Barlow Condensed', sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Barlow Condensed for headings and logo */
+.font-heading {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* mela gym logo style */
+.mela-logo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Primary button base - capsule style */
+.btn-primary {
+  background-color: var(--mela-primary);
+  color: #000000;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 9999px;
+  padding: 14px 32px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: var(--mela-primary-hover);
+  transform: scale(1.02);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+}
+
+/* Secondary button base - capsule style */
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000000;
+  font-weight: 700;
+  border: none;
+  border-radius: 9999px;
+  padding: 14px 32px;
+  letter-spacing: 1px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 1);
+  transform: scale(1.02);
+}
+
+/* Unified loading spinner */
+.mela-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--mela-border);
+  border-top-color: var(--mela-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.mela-spinner-sm {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mela-border);
+  border-top-color: var(--mela-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.mela-spinner-lg {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--mela-border);
+  border-top-color: var(--mela-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loading container */
+.mela-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.mela-loading-text {
+  font-size: 0.875rem;
+  color: var(--mela-text-light);
+}
+
+/* Toggle switch - mela orange */
+.mela-toggle {
+  width: 40px;
+  height: 24px;
+  border-radius: 9999px;
+  position: relative;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+.mela-toggle.active {
+  background-color: var(--mela-primary);
+}
+.mela-toggle.inactive {
+  background-color: var(--mela-inactive);
+}
+.mela-toggle-knob {
+  position: absolute;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 9999px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.mela-toggle.active .mela-toggle-knob {
+  transform: translateX(16px);
+}
+.mela-toggle.inactive .mela-toggle-knob {
+  transform: translateX(2px);
+}
+
+/* Tap highlight disable (mobile) */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Minimal scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--mela-border);
+  border-radius: 2px;
+}
+
+/* Focus ring override to orange */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mela-primary);
+  border-color: var(--mela-primary) !important;
 }

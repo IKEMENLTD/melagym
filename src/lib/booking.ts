@@ -1,0 +1,288 @@
+import { addMinutes } from 'date-fns';
+import { callGAS } from './sheets-api';
+import { getFreeBusy, createCalendarEvent, deleteCalendarEvent } from './google-calendar';
+import type { BookingRequest, BookingResponse, Booking, Trainer, Store } from '@/types/database';
+
+// ---------- 型定義（GASレスポンス用） ----------
+
+interface GASTrainerStoreItem {
+  trainer_id: string;
+  store_id: string;
+  buffer_minutes: number;
+  trainer: Trainer;
+}
+
+interface GASBookingCountsResponse {
+  counts: Record<string, number>;
+}
+
+// ---------- 予約確定 ----------
+
+export async function createBooking(req: BookingRequest): Promise<BookingResponse> {
+  const durationMinutes = 60;
+
+  // トレーナー決定（おまかせの場合は自動アサイン）
+  let trainerId = req.trainer_id;
+  if (trainerId === 'auto') {
+    const assigned = await autoAssignTrainer(
+      req.store_id, req.slot_start, durationMinutes,
+      req.booking_type === 'first_visit'
+    );
+    if (!assigned) {
+      return { success: false, error: 'この時間帯に対応可能なトレーナーがいません' };
+    }
+    trainerId = assigned;
+  }
+
+  // トレーナーと店舗の情報を取得
+  const [trainersRes, storesRes] = await Promise.all([
+    callGAS<{ trainers: Trainer[] }>('getTrainersFull', {}),
+    callGAS<{ stores: Store[] }>('getStores', {}),
+  ]);
+
+  const trainer = trainersRes.trainers.find((t) => t.id === trainerId) ?? null;
+  const store = storesRes.stores.find((s) => s.id === req.store_id) ?? null;
+
+  if (!trainer || !store) {
+    return { success: false, error: 'トレーナーまたは店舗が見つかりません' };
+  }
+
+  // FreeBusy APIでリアルタイム空き確認
+  const slotEnd = addMinutes(new Date(req.slot_start), durationMinutes).toISOString();
+  const calendarIds = [store.google_calendar_id];
+  if (trainer.google_calendar_id) calendarIds.push(trainer.google_calendar_id);
+
+  const busyMap = await getFreeBusy(calendarIds, req.slot_start, slotEnd);
+
+  const trainerBusy = trainer.google_calendar_id
+    ? (busyMap.get(trainer.google_calendar_id) ?? [])
+    : [];
+  const storeBusy = busyMap.get(store.google_calendar_id) ?? [];
+
+  if (trainerBusy.length > 0 || storeBusy.length > 0) {
+    return { success: false, error: 'この時間枠は既に埋まっています。別の時間をお選びください' };
+  }
+
+  // Googleカレンダーにイベント書込み
+  const eventSummary = `[メラジム] ${req.booking_type === 'first_visit' ? '体験' : 'セッション'} - ${req.customer.name ?? '顧客'}`;
+  const eventDescription = `トレーナー: ${trainer.name}\n店舗: ${store.name}`;
+
+  let createdEventId: string | null = null;
+
+  try {
+    createdEventId = await createCalendarEvent(
+      store.google_calendar_id,
+      eventSummary,
+      req.slot_start,
+      slotEnd,
+      eventDescription
+    );
+
+    if (!createdEventId) {
+      return { success: false, error: 'カレンダーへの登録に失敗しました。もう一度お試しください' };
+    }
+
+    // 顧客レコード作成/更新
+    let customerId: string;
+
+    if (req.customer.line_uid) {
+      const existing = await callGAS<{ customer: { id: string } | null }>(
+        'getCustomerByLineUid',
+        { line_uid: req.customer.line_uid }
+      );
+
+      if (existing.customer) {
+        customerId = existing.customer.id;
+        if (req.booking_type === 'first_visit') {
+          await callGAS('upsertCustomer', {
+            id: customerId,
+            data: {
+              name: req.customer.name,
+              email: req.customer.email,
+              phone: req.customer.phone,
+              age_group: req.customer.age_group,
+            },
+          });
+        }
+      } else {
+        const newCust = await callGAS<{ success: boolean; id: string }>('upsertCustomer', {
+          data: {
+            line_uid: req.customer.line_uid,
+            name: req.customer.name ?? '',
+            email: req.customer.email,
+            phone: req.customer.phone ?? '',
+            age_group: req.customer.age_group,
+          },
+        });
+        customerId = newCust.id;
+      }
+    } else {
+      const newCust = await callGAS<{ success: boolean; id: string }>('upsertCustomer', {
+        data: {
+          name: req.customer.name ?? '',
+          email: req.customer.email,
+          phone: req.customer.phone ?? '',
+          age_group: req.customer.age_group,
+        },
+      });
+      customerId = newCust.id;
+    }
+
+    // 予約作成（GAS側でLockServiceによるダブルブッキング防止）
+    const result = await callGAS<{ success: boolean; booking?: Booking; error?: string }>(
+      'createBooking',
+      {
+        customer_id: customerId,
+        trainer_id: trainerId,
+        store_id: req.store_id,
+        scheduled_at: req.slot_start,
+        duration_minutes: durationMinutes,
+        booking_type: req.booking_type,
+        google_calendar_event_id: createdEventId,
+      }
+    );
+
+    if (!result.success) {
+      // 予約失敗時はカレンダーイベントを削除
+      await deleteCalendarEvent(store.google_calendar_id, createdEventId);
+      return { success: false, error: result.error ?? '予約の登録に失敗しました' };
+    }
+
+    // キャッシュ無効化
+    const date = req.slot_start.substring(0, 10);
+    await callGAS('deleteAvailabilityCache', {
+      trainer_id: trainerId,
+      store_id: req.store_id,
+      date,
+    });
+
+    return { success: true, booking: result.booking };
+  } catch (error) {
+    // rollback: clean up calendar event if it was created
+    if (createdEventId) {
+      try {
+        await deleteCalendarEvent(store.google_calendar_id, createdEventId);
+      } catch {
+        console.error('Failed to rollback calendar event:', createdEventId);
+      }
+    }
+    throw error;
+  }
+}
+
+// ---------- おまかせアサイン ----------
+
+async function autoAssignTrainer(
+  storeId: string,
+  slotStart: string,
+  durationMinutes: number,
+  firstVisitOnly: boolean = false
+): Promise<string | null> {
+  const slotEnd = addMinutes(new Date(slotStart), durationMinutes).toISOString();
+
+  // この店舗に対応可能なトレーナーを取得
+  const { trainerStores } = await callGAS<{ trainerStores: GASTrainerStoreItem[] }>(
+    'getTrainerStoresByStore',
+    { storeId }
+  );
+
+  if (!trainerStores || trainerStores.length === 0) return null;
+
+  const activeTrainers = trainerStores.filter((ts) => {
+    const trainer = ts.trainer;
+    return trainer.is_active && (!firstVisitOnly || trainer.is_first_visit_eligible);
+  });
+
+  // FreeBusy APIで全員の空き状況を確認
+  const calendarIds = activeTrainers
+    .map((ts) => ts.trainer.google_calendar_id)
+    .filter((id): id is string => id !== null);
+
+  const busyMap = await getFreeBusy(calendarIds, slotStart, slotEnd);
+
+  // 空いているトレーナーを抽出
+  const availableTrainers = activeTrainers.filter((ts) => {
+    const trainer = ts.trainer;
+    if (!trainer.google_calendar_id) return false;
+    const busy = busyMap.get(trainer.google_calendar_id) ?? [];
+    return busy.length === 0;
+  });
+
+  if (availableTrainers.length === 0) return null;
+
+  // 今週の予約数が少ないトレーナーを優先（稼働率均等化）
+  const weekStart = new Date(slotStart);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const trainerIds = availableTrainers.map((ts) => ts.trainer_id);
+
+  const { counts: countMap } = await callGAS<GASBookingCountsResponse>(
+    'getBookingCountsForTrainers',
+    {
+      trainerIds,
+      startDate: weekStart.toISOString(),
+      endDate: weekEnd.toISOString(),
+    }
+  );
+
+  // 予約数が最小のトレーナーを選択
+  let minCount = Infinity;
+  let selected: string | null = null;
+  for (const id of trainerIds) {
+    const count = countMap[id] ?? 0;
+    if (count < minCount) {
+      minCount = count;
+      selected = id;
+    }
+  }
+
+  return selected;
+}
+
+// ---------- 予約キャンセル ----------
+
+export async function cancelBooking(
+  bookingId: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> {
+  // GAS側でキャンセル処理
+  const result = await callGAS<{
+    success: boolean;
+    error?: string;
+    booking?: Booking;
+    store_google_calendar_id?: string | null;
+  }>('cancelBooking', { bookingId, reason });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  // Googleカレンダーからイベント削除
+  if (result.booking?.google_calendar_event_id && result.store_google_calendar_id) {
+    try {
+      await deleteCalendarEvent(
+        result.store_google_calendar_id,
+        result.booking.google_calendar_event_id
+      );
+    } catch {
+      console.error(
+        'Failed to delete calendar event:',
+        result.booking.google_calendar_event_id
+      );
+    }
+  }
+
+  // キャッシュ無効化
+  if (result.booking) {
+    const date = result.booking.scheduled_at.substring(0, 10);
+    await callGAS('deleteAvailabilityCache', {
+      trainer_id: result.booking.trainer_id,
+      store_id: result.booking.store_id,
+      date,
+    });
+  }
+
+  return { success: true };
+}
