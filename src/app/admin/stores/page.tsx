@@ -175,8 +175,33 @@ export default function StoresPage() {
     );
   }
 
+  const [copied, setCopied] = useState(false);
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  function copyStoreUrl() {
+    navigator.clipboard.writeText(`${baseUrl}/store`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="space-y-6">
+      {/* 店舗ログインURL */}
+      <div className="bg-[#fff5f0] border border-[#ff5000]/20 p-4 rounded-lg">
+        <p className="text-sm font-bold text-black mb-2">店舗ログインURL</p>
+        <div className="flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg">
+          <span className="text-xs text-[#606060] truncate flex-1">{baseUrl}/store</span>
+          <button
+            onClick={copyStoreUrl}
+            className="text-xs text-[#ff5000] font-bold whitespace-nowrap hover:underline"
+          >
+            {copied ? 'コピー済み' : 'コピー'}
+          </button>
+        </div>
+        <p className="text-xs text-[#606060] mt-2">このURLを店舗スタッフに共有すると、店舗名を選択してログインできます。</p>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-black">店舗管理</h1>

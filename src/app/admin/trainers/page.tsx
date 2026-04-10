@@ -181,9 +181,45 @@ export default function TrainersPage() {
   }
 
   const firstVisitCount = trainers.filter((t) => t.is_first_visit_eligible && t.is_active).length;
+  const [copied, setCopied] = useState<string | null>(null);
+
+  function copyUrl(url: string, label: string) {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
     <div className="space-y-6">
+      {/* 招待URL */}
+      <div className="bg-[#fff5f0] border border-[#ff5000]/20 p-4 rounded-lg">
+        <p className="text-sm font-bold text-black mb-2">トレーナー招待URL</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg">
+            <span className="text-xs text-[#606060] truncate flex-1">{baseUrl}/trainer/register</span>
+            <button
+              onClick={() => copyUrl(`${baseUrl}/trainer/register`, 'register')}
+              className="text-xs text-[#ff5000] font-bold whitespace-nowrap hover:underline"
+            >
+              {copied === 'register' ? 'コピー済み' : 'コピー'}
+            </button>
+          </div>
+          <div className="flex-1 flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg">
+            <span className="text-xs text-[#606060] truncate flex-1">{baseUrl}/trainer</span>
+            <button
+              onClick={() => copyUrl(`${baseUrl}/trainer`, 'login')}
+              className="text-xs text-[#ff5000] font-bold whitespace-nowrap hover:underline"
+            >
+              {copied === 'login' ? 'コピー済み' : 'コピー'}
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-[#606060] mt-2">新規登録URLをトレーナーに送ると、自分で登録できます。登録後に稼働トグルをONにしてください。</p>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-black">トレーナー管理</h1>
