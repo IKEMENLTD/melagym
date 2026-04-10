@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
+import { isValidEmail } from '@/lib/validation';
 import type { Trainer } from '@/types/database';
 
 /**
  * POST: メールアドレスでトレーナーを照合
+ *
+ * セキュリティ警告: 現在はメールアドレスのみで認証しており、パスワード検証がありません。
+ * メールアドレスを知っている第三者がなりすまし可能です。
+ * 本番環境ではパスワード認証またはOAuth/マジックリンク認証の導入を強く推奨します。
  */
 export async function POST(request: NextRequest) {
   try {
@@ -17,11 +22,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const trimmedEmail = email.trim().toLowerCase();
+
+    // メールフォーマット検証
+    if (!isValidEmail(trimmedEmail)) {
+      return NextResponse.json(
+        { error: 'メールアドレスの形式が正しくありません' },
+        { status: 400 }
+      );
+    }
+
     const result = await callGAS<{ trainer: Trainer | null }>(
       'getTrainerByEmail',
-      { email: email.trim().toLowerCase() }
+      { email: trimmedEmail }
     );
 
+    // セキュリティ: 存在しないメールと無効アカウントで同じレスポンスを返さない
+    // （ここではUXを優先して区別しているが、攻撃者によるアカウント列挙に注意）
     if (!result.trainer) {
       return NextResponse.json(
         { error: '登録されていないメールアドレスです' },

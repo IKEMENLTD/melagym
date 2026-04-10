@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAvailability, getAvailabilityForStore } from '@/lib/availability';
 
+// IDフォーマット: 英数字・ハイフン・アンダースコアのみ許可
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+// 照会可能な未来日数の上限（90日先まで）
+const MAX_FUTURE_DAYS = 90;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const storeId = searchParams.get('store_id');
@@ -14,9 +19,39 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 日付バリデーション
+  // IDフォーマットバリデーション（trainer_id は 'auto' も許可）
+  if (!SAFE_ID_PATTERN.test(storeId)) {
+    return NextResponse.json({ error: 'store_id の形式が不正です' }, { status: 400 });
+  }
+  if (trainerId !== 'auto' && !SAFE_ID_PATTERN.test(trainerId)) {
+    return NextResponse.json({ error: 'trainer_id の形式が不正です' }, { status: 400 });
+  }
+
+  // 日付フォーマットバリデーション
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, { status: 400 });
+  }
+
+  // 日付の妥当性チェック（実在する日付か）
+  const parsedDate = new Date(`${date}T00:00:00+09:00`);
+  if (isNaN(parsedDate.getTime())) {
+    return NextResponse.json({ error: '無効な日付です' }, { status: 400 });
+  }
+
+  // 過去日付・過度に未来の日付を拒否
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + MAX_FUTURE_DAYS);
+
+  if (parsedDate < today) {
+    return NextResponse.json({ error: '過去の日付は指定できません' }, { status: 400 });
+  }
+  if (parsedDate > maxDate) {
+    return NextResponse.json(
+      { error: `${MAX_FUTURE_DAYS}日以上先の日付は指定できません` },
+      { status: 400 }
+    );
   }
 
   try {

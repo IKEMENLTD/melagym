@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
+import { isValidId, isValidBusinessHours } from '@/lib/validation';
 
 interface StoreDetail {
   id: string;
@@ -9,10 +10,6 @@ interface StoreDetail {
   google_calendar_id: string;
   business_hours: Record<string, { open: string; close: string } | null>;
   is_active: boolean;
-}
-
-interface GetStoreByNameResponse {
-  store: StoreDetail | null;
 }
 
 interface TrainerInfo {
@@ -29,6 +26,10 @@ interface GetTrainersResponse {
 
 /**
  * GET: store_idで店舗情報を取得（トレーナー一覧含む）
+ *
+ * セキュリティ警告: X-Store-Id ヘッダーはクライアントが自由に設定可能です。
+ * 他店舗のIDを指定すれば、その店舗情報・トレーナー一覧を閲覧できます。
+ * 本番環境ではJWT等のトークンベース認証に移行してください。
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -36,6 +37,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!storeId) {
       return NextResponse.json(
         { error: '店舗認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    // ID形式検証（インジェクション対策）
+    if (!isValidId(storeId)) {
+      return NextResponse.json(
+        { error: '無効な店舗IDです' },
         { status: 401 }
       );
     }
@@ -60,14 +69,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       store,
       trainers: trainersResult.trainers,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '店舗情報の取得に失敗しました';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to fetch store settings:', error);
+    return NextResponse.json(
+      { error: '店舗情報の取得に失敗しました' },
+      { status: 500 }
+    );
   }
 }
 
 /**
  * PATCH: 営業時間等の店舗設定を更新
+ *
+ * セキュリティ警告: X-Store-Id ヘッダーはクライアントが自由に設定可能です。
+ * 他店舗のIDを指定すれば、その店舗の営業時間を変更できます。
+ * 本番環境ではJWT等のトークンベース認証に移行してください。
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
@@ -79,12 +95,33 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // ID形式検証（インジェクション対策）
+    if (!isValidId(storeId)) {
+      return NextResponse.json(
+        { error: '無効な店舗IDです' },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json()) as {
       business_hours?: Record<string, { open: string; close: string } | null>;
     };
 
     const updates: Record<string, unknown> = {};
     if (body.business_hours !== undefined) {
+      // business_hours の値を検証
+      if (typeof body.business_hours !== 'object' || body.business_hours === null) {
+        return NextResponse.json(
+          { error: '営業時間はオブジェクトで指定してください' },
+          { status: 400 }
+        );
+      }
+      if (!isValidBusinessHours(body.business_hours)) {
+        return NextResponse.json(
+          { error: '営業時間の形式が正しくありません。曜日名（英語小文字）とHH:MM形式の時刻を指定してください' },
+          { status: 400 }
+        );
+      }
       updates.business_hours = body.business_hours;
     }
 
@@ -108,8 +145,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '店舗設定の更新に失敗しました';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to update store settings:', error);
+    return NextResponse.json(
+      { error: '店舗設定の更新に失敗しました' },
+      { status: 500 }
+    );
   }
 }

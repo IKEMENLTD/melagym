@@ -27,6 +27,8 @@ export async function getFreeBusy(
   timeMin: string,
   timeMax: string
 ): Promise<Map<string, { start: string; end: string }[]>> {
+  if (!calendarIds.length) return new Map();
+
   const calendar = getCalendarClient();
   const result = new Map<string, { start: string; end: string }[]>();
 
@@ -35,25 +37,30 @@ export async function getFreeBusy(
   for (let i = 0; i < calendarIds.length; i += batchSize) {
     const batch = calendarIds.slice(i, i + batchSize);
 
-    const response = await calendar.freebusy.query({
-      requestBody: {
-        timeMin,
-        timeMax,
-        timeZone: 'Asia/Tokyo',
-        items: batch.map((id) => ({ id })),
-      },
-    });
+    try {
+      const response = await calendar.freebusy.query({
+        requestBody: {
+          timeMin,
+          timeMax,
+          timeZone: 'Asia/Tokyo',
+          items: batch.map((id) => ({ id })),
+        },
+      });
 
-    const calendars = response.data.calendars;
-    if (calendars) {
-      for (const [calId, data] of Object.entries(calendars)) {
-        const busy = (data.busy ?? [])
-          .filter((b): b is { start: string; end: string } =>
-            typeof b.start === 'string' && typeof b.end === 'string'
-          )
-          .map((b) => ({ start: b.start, end: b.end }));
-        result.set(calId, busy);
+      const calendars = response.data.calendars;
+      if (calendars) {
+        for (const [calId, data] of Object.entries(calendars)) {
+          const busy = (data.busy ?? [])
+            .filter((b): b is { start: string; end: string } =>
+              typeof b.start === 'string' && typeof b.end === 'string'
+            )
+            .map((b) => ({ start: b.start, end: b.end }));
+          result.set(calId, busy);
+        }
       }
+    } catch (error) {
+      console.error('Google Calendar FreeBusy API error');
+      throw new Error('カレンダーの空き状況取得に失敗しました');
     }
   }
 
@@ -68,19 +75,26 @@ export async function createCalendarEvent(
   endTime: string,
   description?: string
 ): Promise<string | null> {
+  if (!calendarId) throw new Error('カレンダーIDが指定されていません');
+
   const calendar = getCalendarClient();
 
-  const response = await calendar.events.insert({
-    calendarId,
-    requestBody: {
-      summary,
-      description,
-      start: { dateTime: startTime, timeZone: 'Asia/Tokyo' },
-      end: { dateTime: endTime, timeZone: 'Asia/Tokyo' },
-    },
-  });
+  try {
+    const response = await calendar.events.insert({
+      calendarId,
+      requestBody: {
+        summary,
+        description,
+        start: { dateTime: startTime, timeZone: 'Asia/Tokyo' },
+        end: { dateTime: endTime, timeZone: 'Asia/Tokyo' },
+      },
+    });
 
-  return response.data.id ?? null;
+    return response.data.id ?? null;
+  } catch (error) {
+    console.error('Google Calendar event creation error');
+    throw new Error('カレンダーイベントの作成に失敗しました');
+  }
 }
 
 // Googleカレンダーからイベント削除
@@ -88,6 +102,14 @@ export async function deleteCalendarEvent(
   calendarId: string,
   eventId: string
 ): Promise<void> {
+  if (!calendarId || !eventId) throw new Error('カレンダーIDまたはイベントIDが指定されていません');
+
   const calendar = getCalendarClient();
-  await calendar.events.delete({ calendarId, eventId });
+
+  try {
+    await calendar.events.delete({ calendarId, eventId });
+  } catch (error) {
+    console.error('Google Calendar event deletion error');
+    throw new Error('カレンダーイベントの削除に失敗しました');
+  }
 }

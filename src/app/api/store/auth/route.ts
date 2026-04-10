@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
+import { stripHtmlTags, isWithinLength } from '@/lib/validation';
 
 interface StoreData {
   id: string;
@@ -17,6 +18,12 @@ interface GetStoresResponse {
 
 /**
  * POST: 店舗名で店舗を照合してログイン
+ *
+ * セキュリティ警告: 現在は店舗名のみで認証しており、パスワード検証がありません。
+ * 店舗名を知っている第三者がアクセス可能です。
+ * また、GET エンドポイントで店舗名一覧を公開しているため、
+ * 実質的に誰でも任意の店舗としてログインできます。
+ * 本番環境ではパスワード認証またはトークンベース認証の導入を強く推奨します。
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -30,9 +37,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // 入力サニタイズ
+    const sanitizedName = stripHtmlTags(storeName.trim());
+    if (!isWithinLength(sanitizedName, 200)) {
+      return NextResponse.json(
+        { error: '店舗名が長すぎます' },
+        { status: 400 }
+      );
+    }
+
+    if (sanitizedName.length === 0) {
+      return NextResponse.json(
+        { error: '店舗名を指定してください' },
+        { status: 400 }
+      );
+    }
+
     // GASからstoreByNameで検索
     const result = await callGAS<{ store: StoreData | null }>('getStoreByName', {
-      name: storeName,
+      name: sanitizedName,
     });
 
     if (!result.store) {
@@ -56,9 +79,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         area: result.store.area,
       },
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '認証処理でエラーが発生しました';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error) {
+    // セキュリティ: 内部エラーの詳細をクライアントに返さない
+    console.error('Store auth error:', error);
+    return NextResponse.json(
+      { error: '認証処理でエラーが発生しました' },
+      { status: 500 }
+    );
   }
 }
 
@@ -73,8 +100,11 @@ export async function GET(): Promise<NextResponse> {
       name: s.name,
     }));
     return NextResponse.json({ stores: storeNames });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '店舗一覧の取得に失敗しました';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to fetch stores:', error);
+    return NextResponse.json(
+      { error: '店舗一覧の取得に失敗しました' },
+      { status: 500 }
+    );
   }
 }

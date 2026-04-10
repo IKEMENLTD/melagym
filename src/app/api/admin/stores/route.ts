@@ -33,7 +33,13 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
+  }
+
   const { id, ...rawUpdates } = body;
 
   if (!id || typeof id !== 'string') {

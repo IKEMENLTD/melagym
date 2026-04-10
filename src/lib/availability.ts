@@ -6,6 +6,9 @@ import type { TimeSlot, Store, Trainer, BusinessHours } from '@/types/database';
 const SLOT_DURATION_MINUTES = 60; // 1セッション60分
 const CACHE_TTL_MINUTES = 5;
 
+// YYYY-MM-DD 形式バリデーション（事前コンパイル）
+const DATE_FORMAT_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 // ---------- 型定義（GASレスポンス用） ----------
 
 interface GASTrainerStoreItem {
@@ -29,6 +32,11 @@ export async function getAvailability(
   storeId: string,
   date: string // YYYY-MM-DD
 ): Promise<TimeSlot[]> {
+  // 入力バリデーション
+  if (!trainerId || typeof trainerId !== 'string') return [];
+  if (!storeId || typeof storeId !== 'string') return [];
+  if (!DATE_FORMAT_RE.test(date) || isNaN(parseISO(date).getTime())) return [];
+
   // キャッシュチェック
   const cacheRes = await callGAS<GASCacheResponse>('getAvailabilityCache', {
     trainer_id: trainerId,

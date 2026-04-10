@@ -63,12 +63,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setAuthed(isLoggedIn());
   }, []);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!tokenInput.trim()) return;
-    setAdminToken(tokenInput.trim());
-    setAuthed(true);
     setAuthError(false);
+
+    // サーバー側でトークンを検証してからログイン状態にする
+    try {
+      const res = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokenInput.trim()}`,
+        },
+      });
+      if (!res.ok) {
+        setAuthError(true);
+        return;
+      }
+      setAdminToken(tokenInput.trim());
+      setAuthed(true);
+    } catch {
+      setAuthError(true);
+    }
   }
 
   if (!authed) {

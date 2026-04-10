@@ -8,6 +8,12 @@
 const GAS_API_URL = process.env.NEXT_PUBLIC_GAS_API_URL ?? '';
 const GAS_API_KEY = process.env.GAS_API_KEY ?? '';
 
+// サーバーサイド専用モジュールであることを保証
+// NEXT_PUBLIC_ プレフィックスのないGAS_API_KEYがクライアントに漏洩するのを防ぐ
+if (typeof window !== 'undefined') {
+  throw new Error('sheets-api はサーバーサイドでのみ使用できます');
+}
+
 interface GASResponse<T> {
   statusCode: number;
   data: T;
@@ -46,7 +52,21 @@ export async function callGAS<T = Record<string, unknown>>(
       throw new Error(`GAS API HTTP error: ${res.status}`);
     }
 
-    const json = (await res.json()) as GASResponse<T | GASErrorData>;
+    let json: GASResponse<T | GASErrorData>;
+    try {
+      json = (await res.json()) as GASResponse<T | GASErrorData>;
+    } catch {
+      throw new Error('GAS APIのレスポンスが不正なJSON形式です');
+    }
+
+    if (
+      json === null ||
+      typeof json !== 'object' ||
+      typeof json.statusCode !== 'number' ||
+      !('data' in json)
+    ) {
+      throw new Error('GAS APIのレスポンス構造が不正です');
+    }
 
     if (json.statusCode >= 400) {
       const errData = json.data as GASErrorData;

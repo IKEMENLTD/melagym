@@ -12,7 +12,8 @@ export function getAdminToken(): string | null {
 }
 
 export function setAdminToken(token: string): void {
-  document.cookie = `${ADMIN_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${ADMIN_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax${secure}`;
 }
 
 export function clearAdminToken(): void {

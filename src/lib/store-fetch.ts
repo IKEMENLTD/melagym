@@ -20,8 +20,9 @@ export function getStoreName(): string | null {
 
 export function setStoreAuth(storeId: string, storeName: string): void {
   const maxAge = 60 * 60 * 24 * 30; // 30日
-  document.cookie = `${STORE_ID_KEY}=${encodeURIComponent(storeId)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-  document.cookie = `${STORE_NAME_KEY}=${encodeURIComponent(storeName)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${STORE_ID_KEY}=${encodeURIComponent(storeId)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+  document.cookie = `${STORE_NAME_KEY}=${encodeURIComponent(storeName)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 }
 
 export function clearStoreAuth(): void {

@@ -74,7 +74,7 @@ export default function BookingsPage() {
   async function handleCancel(bookingId: string) {
     if (!confirm('この予約をキャンセルしますか？')) return;
     try {
-      const res = await fetch(`/api/booking?id=${bookingId}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/booking?id=${bookingId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       const result = await res.json();
       if (result.success) {

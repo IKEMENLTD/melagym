@@ -18,7 +18,31 @@ interface GASBookingCountsResponse {
 
 // ---------- 予約確定 ----------
 
+// ISO 8601 日時文字列の簡易バリデーション
+const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+const VALID_BOOKING_TYPES = ['first_visit', 'regular'] as const;
+
 export async function createBooking(req: BookingRequest): Promise<BookingResponse> {
+  // --- 入力バリデーション ---
+  if (!req.slot_start || !ISO_DATETIME_RE.test(req.slot_start)) {
+    return { success: false, error: '予約日時の形式が不正です' };
+  }
+  if (isNaN(new Date(req.slot_start).getTime())) {
+    return { success: false, error: '予約日時が無効です' };
+  }
+  if (new Date(req.slot_start) <= new Date()) {
+    return { success: false, error: '過去の日時には予約できません' };
+  }
+  if (!req.store_id || typeof req.store_id !== 'string') {
+    return { success: false, error: '店舗IDが不正です' };
+  }
+  if (!req.trainer_id || typeof req.trainer_id !== 'string') {
+    return { success: false, error: 'トレーナーIDが不正です' };
+  }
+  if (!VALID_BOOKING_TYPES.includes(req.booking_type as typeof VALID_BOOKING_TYPES[number])) {
+    return { success: false, error: '予約タイプが不正です' };
+  }
+
   const durationMinutes = 60;
 
   // トレーナー決定（おまかせの場合は自動アサイン）
@@ -247,6 +271,10 @@ export async function cancelBooking(
   bookingId: string,
   reason?: string
 ): Promise<{ success: boolean; error?: string }> {
+  if (!bookingId || typeof bookingId !== 'string') {
+    return { success: false, error: '予約IDが不正です' };
+  }
+
   // GAS側でキャンセル処理
   const result = await callGAS<{
     success: boolean;

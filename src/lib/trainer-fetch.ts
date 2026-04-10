@@ -55,5 +55,6 @@ function getCookieValue(name: string): string | null {
 }
 
 function setCookie(name: string, value: string, maxAge: number): void {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 }

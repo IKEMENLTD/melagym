@@ -41,7 +41,13 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
+  }
+
   const { id, ...rawUpdates } = body;
 
   if (!id || typeof id !== 'string') {
@@ -80,7 +86,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
+  }
 
   // 必須項目チェック
   if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
@@ -90,11 +101,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'メールアドレスは必須です' }, { status: 400 });
   }
 
+  const name = body.name.trim();
+  const email = body.email.trim();
+  const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+
   try {
     const result = await callGAS<{ success: boolean; id: string }>('addTrainer', {
-      name: body.name.trim(),
-      email: body.email.trim(),
-      phone: body.phone?.trim() ?? '',
+      name,
+      email,
+      phone,
       specialties: body.specialties ?? [],
       bio: body.bio ?? '',
       is_first_visit_eligible: body.is_first_visit_eligible ?? false,

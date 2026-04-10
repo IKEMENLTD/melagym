@@ -12,6 +12,74 @@
 var SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
 var API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
 
+// ---------- セキュリティ定数 ----------
+var MAX_STRING_LENGTH = 1000;
+var MAX_BIO_LENGTH = 3000;
+var EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ---------- セキュリティヘルパー ----------
+
+/**
+ * タイミング攻撃を防ぐ定数時間文字列比較
+ * 文字列長に関わらず全文字を比較し、処理時間が一定になる
+ */
+function constantTimeEquals_(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  // 長さが異なっても全文字走査する（長さの違い自体は漏れるが、内容は漏れない）
+  var length = Math.max(a.length, b.length);
+  var result = a.length === b.length ? 0 : 1;
+  for (var i = 0; i < length; i++) {
+    var charA = i < a.length ? a.charCodeAt(i) : 0;
+    var charB = i < b.length ? b.charCodeAt(i) : 0;
+    result |= charA ^ charB;
+  }
+  return result === 0;
+}
+
+/**
+ * スプレッドシート数式インジェクション対策
+ * セルに書き込む文字列値の先頭が危険文字の場合、シングルクオートでエスケープする
+ * =, +, -, @, タブ, 改行 で始まる値が対象
+ */
+function sanitizeForSheet_(value) {
+  if (typeof value !== 'string') return value;
+  if (value.length === 0) return value;
+  var firstChar = value.charAt(0);
+  if (firstChar === '=' || firstChar === '+' || firstChar === '-' ||
+      firstChar === '@' || firstChar === '\t' || firstChar === '\r' || firstChar === '\n') {
+    return "'" + value;
+  }
+  return value;
+}
+
+/**
+ * 文字列の長さを制限する
+ */
+function truncateString_(value, maxLength) {
+  if (typeof value !== 'string') return value;
+  if (value.length > maxLength) {
+    return value.substring(0, maxLength);
+  }
+  return value;
+}
+
+/**
+ * メールアドレスのフォーマット検証
+ */
+function isValidEmail_(email) {
+  if (!email || typeof email !== 'string') return false;
+  return EMAIL_REGEX.test(email);
+}
+
+/**
+ * IDの形式検証（UUID形式またはシンプルな英数字-_）
+ */
+function isValidId_(id) {
+  if (!id || typeof id !== 'string') return false;
+  if (id.length > 100) return false;
+  return /^[a-zA-Z0-9_\-]+$/.test(id);
+}
+
 // ---------- エントリポイント ----------
 
 function doPost(e) {
@@ -22,8 +90,8 @@ function doPost(e) {
     }
     var payload = JSON.parse(e.postData.contents);
 
-    // APIキー認証
-    if (payload.apiKey !== API_KEY) {
+    // APIキー認証（タイミング攻撃対策: 定数時間比較）
+    if (!constantTimeEquals_(payload.apiKey, API_KEY)) {
       return jsonResponse_({ error: '認証に失敗しました' }, 401);
     }
 
@@ -57,14 +125,16 @@ function doPost(e) {
 
     var handler = handlers[action];
     if (!handler) {
-      return jsonResponse_({ error: '不明なアクション: ' + action }, 400);
+      // action名をエラーメッセージに含めない（情報漏洩防止）
+      return jsonResponse_({ error: '不明なアクションが指定されました' }, 400);
     }
 
     var result = handler(params);
     return jsonResponse_(result, 200);
   } catch (err) {
+    // 内部エラー情報をクライアントに返さない（情報漏洩防止）
     Logger.log('doPost error: ' + err.message + '\n' + err.stack);
-    return jsonResponse_({ error: 'サーバーエラー: ' + err.message }, 500);
+    return jsonResponse_({ error: 'サーバーエラーが発生しました。しばらくしてからお試しください' }, 500);
   }
 }
 
@@ -177,6 +247,8 @@ function updateRowById_(sheetName, id, updates) {
           if (typeof value === 'object' && value !== null) {
             value = JSON.stringify(value);
           }
+          // 数式インジェクション対策
+          value = sanitizeForSheet_(value);
           sheet.getRange(i + 1, col + 1).setValue(value);
         }
       }
@@ -201,7 +273,8 @@ function appendRow_(sheetName, rowObj) {
     } else if (typeof val === 'object') {
       row.push(JSON.stringify(val));
     } else {
-      row.push(val);
+      // 数式インジェクション対策: 文字列値をサニタイズ
+      row.push(sanitizeForSheet_(val));
     }
   }
   sheet.appendRow(row);
@@ -382,14 +455,35 @@ function getTrainersFull_(params) {
 function createBooking_(params) {
   var lock = LockService.getScriptLock();
   try {
-    // 30秒待ってロック取得
-    lock.waitLock(30000);
+    // 10秒待ってロック取得（DoS対策: 長時間ロック待ちを防止）
+    lock.waitLock(10000);
   } catch (e) {
     return { success: false, error: 'この枠は他の方が予約手続き中です。しばらくしてからお試しください' };
   }
 
   try {
     var data = params;
+
+    // 必須パラメータの検証
+    if (!data.customer_id || !data.trainer_id || !data.store_id || !data.scheduled_at) {
+      return { success: false, error: '必須項目が不足しています' };
+    }
+
+    // IDの形式チェック
+    if (!isValidId_(String(data.customer_id)) || !isValidId_(String(data.trainer_id)) || !isValidId_(String(data.store_id))) {
+      return { success: false, error: '不正なID形式です' };
+    }
+
+    // 過去日時チェック
+    var scheduledDate = new Date(data.scheduled_at);
+    if (isNaN(scheduledDate.getTime())) {
+      return { success: false, error: '不正な日時形式です' };
+    }
+    var now = new Date();
+    // 5分前までは許容（クライアントとのタイムラグ考慮）
+    if (scheduledDate.getTime() < now.getTime() - 5 * 60 * 1000) {
+      return { success: false, error: '過去の日時は予約できません' };
+    }
 
     // 同一トレーナー・同一時刻の重複チェック（店舗をまたいだダブルブッキングも防止）
     var bookings = getAllRows_('bookings');
@@ -421,7 +515,7 @@ function createBooking_(params) {
       booking_type: data.booking_type,
       status: 'confirmed',
       google_calendar_event_id: data.google_calendar_event_id || '',
-      notes: data.notes || '',
+      notes: truncateString_(data.notes || '', MAX_STRING_LENGTH),
       cancelled_at: '',
       cancel_reason: '',
       created_at: now,
@@ -442,6 +536,12 @@ function createBooking_(params) {
 function cancelBooking_(params) {
   var bookingId = params.bookingId;
   var reason = params.reason || '';
+  var requesterId = params.customer_id || params.trainer_id || null;
+
+  // IDの形式チェック
+  if (!bookingId || !isValidId_(String(bookingId))) {
+    return { success: false, error: '不正な予約IDです' };
+  }
 
   var bookings = getAllRows_('bookings');
   var booking = null;
@@ -456,9 +556,20 @@ function cancelBooking_(params) {
     return { success: false, error: '予約が見つかりません' };
   }
 
+  // 認可チェック: リクエスト元が予約の当事者（顧客またはトレーナー）であることを確認
+  // requesterId が提供されている場合のみチェック（管理APIからの呼び出しは除外）
+  if (requesterId &&
+      String(requesterId) !== String(booking.customer_id) &&
+      String(requesterId) !== String(booking.trainer_id)) {
+    return { success: false, error: 'この予約をキャンセルする権限がありません' };
+  }
+
   if (booking.status !== 'confirmed') {
     return { success: false, error: 'この予約はキャンセルできません' };
   }
+
+  // キャンセル理由の文字列長制限
+  reason = truncateString_(reason, MAX_STRING_LENGTH);
 
   var now = new Date().toISOString();
   updateRowById_('bookings', bookingId, {
@@ -609,7 +720,19 @@ function getStats_(params) {
  */
 function updateTrainer_(params) {
   var id = params.id;
+  if (!id || !isValidId_(String(id))) {
+    return { success: false, error: '不正なトレーナーIDです' };
+  }
   var updates = params.updates || {};
+
+  // メールアドレス形式チェック（更新時）
+  if (updates.email !== undefined && updates.email !== '' && !isValidEmail_(updates.email)) {
+    return { success: false, error: 'メールアドレスの形式が不正です' };
+  }
+
+  // 文字列長制限
+  if (updates.name) updates.name = truncateString_(updates.name, MAX_STRING_LENGTH);
+  if (updates.bio) updates.bio = truncateString_(updates.bio, MAX_BIO_LENGTH);
 
   // JSONフィールドのマッピング
   if (updates.specialties !== undefined) {
@@ -630,17 +753,31 @@ function updateTrainer_(params) {
  * トレーナー追加
  */
 function addTrainer_(params) {
+  // 必須パラメータ検証
+  if (!params.name || typeof params.name !== 'string' || params.name.trim().length === 0) {
+    return { success: false, error: 'トレーナー名は必須です' };
+  }
+
+  // メールアドレス形式チェック
+  if (params.email && !isValidEmail_(params.email)) {
+    return { success: false, error: 'メールアドレスの形式が不正です' };
+  }
+
+  // 文字列長制限
+  var name = truncateString_(params.name, MAX_STRING_LENGTH);
+  var bio = truncateString_(params.bio || '', MAX_BIO_LENGTH);
+
   var id = Utilities.getUuid();
   var now = new Date().toISOString();
 
   var trainer = {
     id: id,
-    name: params.name,
+    name: name,
     email: params.email || '',
     phone: params.phone || '',
     photo_url: params.photo_url || '',
     specialties_json: JSON.stringify(params.specialties || []),
-    bio: params.bio || '',
+    bio: bio,
     is_first_visit_eligible: params.is_first_visit_eligible || false,
     is_active: params.is_active !== undefined ? params.is_active : true,
     google_calendar_id: params.google_calendar_id || '',
@@ -704,7 +841,25 @@ function upsertCustomer_(params) {
   var customerId = params.id;
   var data = params.data;
 
+  if (!data) {
+    return { success: false, error: '顧客データが不足しています' };
+  }
+
+  // メールアドレス形式チェック
+  if (data.email && !isValidEmail_(data.email)) {
+    return { success: false, error: 'メールアドレスの形式が不正です' };
+  }
+
+  // 文字列長制限
+  if (data.name) data.name = truncateString_(data.name, MAX_STRING_LENGTH);
+  if (data.email) data.email = truncateString_(data.email, MAX_STRING_LENGTH);
+  if (data.phone) data.phone = truncateString_(data.phone, 20);
+
   if (customerId) {
+    // IDの形式チェック
+    if (!isValidId_(String(customerId))) {
+      return { success: false, error: '不正な顧客IDです' };
+    }
     // 更新
     data.updated_at = new Date().toISOString();
     updateRowById_('customers', customerId, data);
@@ -908,6 +1063,7 @@ function getTrainerByEmail_(params) {
 function getTrainerBookings_(params) {
   var trainerId = params.trainer_id;
   if (!trainerId) return { bookings: [] };
+  if (!isValidId_(String(trainerId))) return { bookings: [] };
 
   var allBookings = getAllRows_('bookings').map(parseBooking_);
   var allCustomers = getAllRows_('customers');
@@ -996,6 +1152,7 @@ function getStoreByName_(params) {
 function getStoreBookings_(params) {
   var storeId = params.storeId;
   if (!storeId) return { bookings: [] };
+  if (!isValidId_(String(storeId))) return { bookings: [] };
 
   var allBookings = getAllRows_('bookings').map(parseBooking_);
   var allCustomers = getAllRows_('customers');
