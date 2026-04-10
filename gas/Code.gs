@@ -89,12 +89,12 @@ function testConnection() {
 function setupSheets() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheetConfigs = {
-    'stores': ['id', 'name', 'area', 'address', 'google_calendar_id', 'business_hours_json', 'is_active'],
-    'trainers': ['id', 'name', 'email', 'phone', 'photo_url', 'specialties_json', 'bio', 'is_first_visit_eligible', 'is_active', 'google_calendar_id', 'available_hours_json'],
+    'stores': ['id', 'name', 'area', 'address', 'google_calendar_id', 'business_hours_json', 'is_active', 'created_at', 'updated_at'],
+    'trainers': ['id', 'name', 'email', 'phone', 'photo_url', 'specialties_json', 'bio', 'is_first_visit_eligible', 'is_active', 'google_calendar_id', 'available_hours_json', 'created_at', 'updated_at'],
     'trainer_stores': ['trainer_id', 'store_id', 'buffer_minutes'],
-    'customers': ['id', 'line_uid', 'name', 'email', 'phone', 'age_group', 'is_first_visit_completed'],
-    'bookings': ['id', 'customer_id', 'trainer_id', 'store_id', 'scheduled_at', 'duration_minutes', 'booking_type', 'status', 'google_calendar_event_id', 'notes', 'cancelled_at', 'cancel_reason', 'created_at'],
-    'availability_cache': ['trainer_id', 'store_id', 'date', 'slots_json', 'fetched_at']
+    'customers': ['id', 'line_uid', 'name', 'email', 'phone', 'age_group', 'is_first_visit_completed', 'favorite_trainer_id', 'created_at', 'updated_at'],
+    'bookings': ['id', 'customer_id', 'trainer_id', 'store_id', 'scheduled_at', 'duration_minutes', 'booking_type', 'status', 'google_calendar_event_id', 'notes', 'cancelled_at', 'cancel_reason', 'created_at', 'updated_at'],
+    'availability_cache': ['id', 'trainer_id', 'store_id', 'date', 'slots_json', 'fetched_at']
   };
 
   for (var name in sheetConfigs) {
@@ -168,7 +168,7 @@ function updateRowById_(sheetName, id, updates) {
   if (idCol === -1) return false;
 
   for (var i = 1; i < data.length; i++) {
-    if (data[i][idCol] === id) {
+    if (String(data[i][idCol]) === String(id)) {
       for (var key in updates) {
         var col = headers.indexOf(key);
         if (col !== -1) {
@@ -262,20 +262,35 @@ function parseTrainer_(row) {
  * bookingの行をパース
  */
 function parseBooking_(row) {
+  // scheduled_atはGASがDate型として読む場合があるためISO文字列に変換
+  var scheduledAt = row.scheduled_at;
+  if (scheduledAt instanceof Date) {
+    scheduledAt = scheduledAt.toISOString();
+  }
+  var createdAt = row.created_at;
+  if (createdAt instanceof Date) {
+    createdAt = createdAt.toISOString();
+  }
+  var cancelledAt = row.cancelled_at;
+  if (cancelledAt instanceof Date) {
+    cancelledAt = cancelledAt.toISOString();
+  }
+
   return {
     id: row.id,
     customer_id: row.customer_id,
     trainer_id: row.trainer_id,
     store_id: row.store_id,
-    scheduled_at: row.scheduled_at,
+    scheduled_at: scheduledAt || '',
     duration_minutes: Number(row.duration_minutes) || 60,
     booking_type: row.booking_type,
     status: row.status,
     google_calendar_event_id: row.google_calendar_event_id || null,
     notes: row.notes || null,
-    cancelled_at: row.cancelled_at || null,
+    cancelled_at: cancelledAt || null,
     cancel_reason: row.cancel_reason || null,
-    created_at: row.created_at || '',
+    created_at: createdAt || '',
+    updated_at: row.updated_at || '',
   };
 }
 
@@ -376,12 +391,16 @@ function createBooking_(params) {
   try {
     var data = params;
 
-    // 同一トレーナー・同一時刻の重複チェック
+    // 同一トレーナー・同一時刻の重複チェック（店舗をまたいだダブルブッキングも防止）
     var bookings = getAllRows_('bookings');
+    var scheduledAtStr = String(data.scheduled_at);
     var duplicate = bookings.some(function(b) {
+      // GASがDate型として読む場合に備えて文字列に変換して比較
+      var existingAt = b.scheduled_at instanceof Date
+        ? b.scheduled_at.toISOString()
+        : String(b.scheduled_at);
       return b.trainer_id === data.trainer_id &&
-             b.store_id === data.store_id &&
-             b.scheduled_at === data.scheduled_at &&
+             existingAt === scheduledAtStr &&
              b.status === 'confirmed';
     });
 
@@ -406,6 +425,7 @@ function createBooking_(params) {
       cancelled_at: '',
       cancel_reason: '',
       created_at: now,
+      updated_at: now,
     };
 
     appendRow_('bookings', booking);
@@ -445,7 +465,14 @@ function cancelBooking_(params) {
     status: 'cancelled',
     cancelled_at: now,
     cancel_reason: reason,
+    updated_at: now,
   });
+
+  // 更新後のデータを反映してからパース
+  booking.status = 'cancelled';
+  booking.cancelled_at = now;
+  booking.cancel_reason = reason;
+  booking.updated_at = now;
 
   // store情報を取得してカレンダーID返却
   var stores = getAllRows_('stores');
@@ -615,7 +642,7 @@ function addTrainer_(params) {
     specialties_json: JSON.stringify(params.specialties || []),
     bio: params.bio || '',
     is_first_visit_eligible: params.is_first_visit_eligible || false,
-    is_active: true,
+    is_active: params.is_active !== undefined ? params.is_active : true,
     google_calendar_id: params.google_calendar_id || '',
     available_hours_json: JSON.stringify(params.available_hours || { start: '09:00', end: '21:00' }),
     created_at: now,
@@ -679,6 +706,7 @@ function upsertCustomer_(params) {
 
   if (customerId) {
     // 更新
+    data.updated_at = new Date().toISOString();
     updateRowById_('customers', customerId, data);
     return { success: true, id: customerId };
   }
@@ -694,6 +722,7 @@ function upsertCustomer_(params) {
     phone: data.phone || '',
     age_group: data.age_group || '',
     is_first_visit_completed: false,
+    favorite_trainer_id: data.favorite_trainer_id || '',
     created_at: now,
     updated_at: now,
   };
@@ -799,7 +828,7 @@ function getAvailabilityCache_(params) {
         rows[i].date === date) {
       return {
         cache: {
-          slots: parseJsonField_(rows[i].slots),
+          slots: parseJsonField_(rows[i].slots_json),
           fetched_at: rows[i].fetched_at,
         },
       };
@@ -833,7 +862,7 @@ function upsertAvailabilityCache_(params) {
         data[i][storeIdCol] === storeId &&
         data[i][dateCol] === date) {
       // 更新
-      var slotsCol = headers.indexOf('slots');
+      var slotsCol = headers.indexOf('slots_json');
       var fetchedAtCol = headers.indexOf('fetched_at');
       sheet.getRange(i + 1, slotsCol + 1).setValue(JSON.stringify(slots));
       sheet.getRange(i + 1, fetchedAtCol + 1).setValue(fetchedAt);
@@ -847,7 +876,7 @@ function upsertAvailabilityCache_(params) {
     trainer_id: trainerId,
     store_id: storeId,
     date: date,
-    slots: JSON.stringify(slots),
+    slots_json: JSON.stringify(slots),
     fetched_at: fetchedAt,
   });
 
