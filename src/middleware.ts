@@ -71,16 +71,26 @@ function isOriginAllowed(request: NextRequest): boolean {
     return true;
   }
 
+  // 同一オリジンのリクエストを許可（自サイトからのAPI呼び出し）
+  const requestUrl = new URL(request.url);
+  const requestOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+  if (origin === requestOrigin) {
+    return true;
+  }
+
+  // Vercelのプレビュー/本番URLを許可
+  if (origin.endsWith('.vercel.app')) {
+    return true;
+  }
+
   // 開発環境ではlocalhostを許可
-  if (process.env.NODE_ENV !== 'production') {
-    try {
-      const url = new URL(origin);
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        return true;
-      }
-    } catch {
-      // 不正なOriginの場合はfalse
+  try {
+    const url = new URL(origin);
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+      return true;
     }
+  } catch {
+    // 不正なOriginの場合はfalse
   }
 
   return false;
