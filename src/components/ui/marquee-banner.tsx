@@ -2,10 +2,10 @@
 
 export function MarqueeBanner() {
   return (
-    <div className="w-full overflow-hidden py-2 bg-white/80 backdrop-blur-sm">
-      <div className="flex animate-marquee">
-        <img src="/images/marquee-banner.webp" alt="mela gym" className="h-6 sm:h-8 min-w-max" />
-        <img src="/images/marquee-banner.webp" alt="" className="h-6 sm:h-8 min-w-max" aria-hidden="true" />
+    <div className="w-full overflow-hidden py-1.5 border-y border-[#f0f0f0]">
+      <div className="flex animate-marquee whitespace-nowrap">
+        <img src="/images/marquee-banner.webp" alt="mela gym" className="h-5 sm:h-6 w-auto flex-shrink-0" draggable={false} />
+        <img src="/images/marquee-banner.webp" alt="" className="h-5 sm:h-6 w-auto flex-shrink-0" aria-hidden="true" draggable={false} />
       </div>
     </div>
   );

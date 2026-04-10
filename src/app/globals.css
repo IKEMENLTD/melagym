@@ -212,36 +212,20 @@ input:focus, textarea:focus, select:focus {
   animation: slide-up 0.3s ease-out;
 }
 
-/* 薄い背景画像 - 各ページ用 */
+/* 薄い背景画像 - linear-gradientで白を重ねてopacityを制御 */
 .mela-bg-gym {
-  background-image: url('/images/bg-gym-entrance.webp');
+  background-image:
+    linear-gradient(rgba(255,255,255,0.94), rgba(255,255,255,0.94)),
+    url('/images/bg-gym-entrance.webp');
   background-size: cover;
   background-position: center;
-  background-attachment: scroll;
-  position: relative;
-}
-.mela-bg-gym::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.96);
-  pointer-events: none;
-  z-index: 0;
 }
 .mela-bg-training {
-  background-image: url('/images/bg-training.webp');
+  background-image:
+    linear-gradient(rgba(255,255,255,0.93), rgba(255,255,255,0.93)),
+    url('/images/bg-training.webp');
   background-size: cover;
   background-position: center;
-  background-attachment: scroll;
-  position: relative;
-}
-.mela-bg-training::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.95);
-  pointer-events: none;
-  z-index: 0;
 }
 /* Marquee banner animation */
 @keyframes marquee {
@@ -386,17 +370,9 @@ input:focus, textarea:focus, select:focus {
 }
 
 .mela-bg-training2 {
-  background-image: url('/images/bg-training2.webp');
+  background-image:
+    linear-gradient(rgba(255,255,255,0.93), rgba(255,255,255,0.93)),
+    url('/images/bg-training2.webp');
   background-size: cover;
   background-position: center;
-  background-attachment: scroll;
-  position: relative;
-}
-.mela-bg-training2::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.95);
-  z-index: 0;
-  pointer-events: none;
 }
