@@ -15,7 +15,8 @@ type BusinessHours = Record<string, BusinessHoursEntry | null>;
 interface StoreDetail {
   id: string;
   name: string;
-  google_calendar_id: string;
+  has_calendar_linked: boolean;
+  calendar_id_masked: string | null;
   business_hours: BusinessHours;
 }
 
@@ -156,14 +157,14 @@ export default function CalendarSettingsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-black">カレンダー設定</h1>
 
-      {/* GoogleカレンダーID */}
+      {/* Googleカレンダー連携状態 */}
       <div className="bg-white border border-[#d9d9d9] rounded-lg p-6">
-        <h2 className="font-bold text-black mb-3">GoogleカレンダーID</h2>
-        {store.google_calendar_id ? (
+        <h2 className="font-bold text-black mb-3">Googleカレンダー連携</h2>
+        {store.has_calendar_linked ? (
           <div className="flex items-center gap-3">
             <span className="inline-block w-2 h-2 rounded-full bg-[#22c55e]" />
             <span className="text-sm text-[#4d4d4d] break-all">
-              {store.google_calendar_id}
+              連携済み ({store.calendar_id_masked})
             </span>
           </div>
         ) : (

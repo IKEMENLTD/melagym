@@ -1,43 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
 import {
-  isValidEmail,
-  isValidId,
   stripHtmlTags,
+  stripDangerousKeys,
   isWithinLength,
   isValidTime,
+  isValidExternalUrl,
 } from '@/lib/validation';
+import { verifyTrainerSession } from '@/lib/trainer-session-verify';
 import type { Trainer } from '@/types/database';
 
 /**
- * GET: トレーナーのメールアドレスでプロフィール取得
+ * GET: トレーナーのプロフィール取得
  *
- * セキュリティ警告: X-Trainer-Email ヘッダーはクライアントが自由に設定可能です。
- * 他のトレーナーのメールアドレスを指定すれば、そのプロフィールを閲覧できます。
- * 本番環境ではJWT等のトークンベース認証に移行してください。
+ * セッション整合性チェック: X-Trainer-Id と X-Trainer-Email の両方を検証し、
+ * GASでIDとEmailが一致するか確認することで、なりすましを防止する。
  */
 export async function GET(request: NextRequest) {
   try {
-    const trainerEmail = request.headers.get('X-Trainer-Email');
-
-    if (!trainerEmail) {
+    // セッション整合性チェック (ID + Email の一致を検証)
+    const session = await verifyTrainerSession(request);
+    if (!session.ok) {
       return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
+        { error: session.error },
+        { status: session.status ?? 401 }
       );
     }
 
-    // メールフォーマット検証（ヘッダーインジェクション対策）
-    if (!isValidEmail(trainerEmail)) {
-      return NextResponse.json(
-        { error: '無効な認証情報です' },
-        { status: 401 }
-      );
-    }
-
+    // 検証済みのEmailでプロフィール取得
     const result = await callGAS<{ trainer: Trainer | null }>(
       'getTrainerByEmail',
-      { email: trainerEmail }
+      { email: session.trainerEmail }
     );
 
     if (!result.trainer) {
@@ -47,7 +40,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ trainer: result.trainer });
+    // セキュリティ: google_calendar_id 等の内部情報をクライアントに返さない
+    // 連携状態のみ boolean で返す
+    const safeTrainer = {
+      id: result.trainer.id,
+      name: result.trainer.name,
+      email: result.trainer.email,
+      phone: result.trainer.phone,
+      photo_url: result.trainer.photo_url,
+      specialties: result.trainer.specialties,
+      bio: result.trainer.bio,
+      is_first_visit_eligible: result.trainer.is_first_visit_eligible,
+      is_active: result.trainer.is_active,
+      available_hours: result.trainer.available_hours,
+      has_calendar_linked: !!result.trainer.google_calendar_id,
+    };
+
+    return NextResponse.json({ trainer: safeTrainer });
   } catch (error) {
     console.error('Failed to fetch trainer profile:', error);
     return NextResponse.json(
@@ -69,30 +78,26 @@ const ALLOWED_UPDATE_FIELDS = new Set([
 /**
  * PATCH: プロフィール更新
  *
- * セキュリティ警告: X-Trainer-Id ヘッダーはクライアントが自由に設定可能です。
- * 他のトレーナーのIDを指定すれば、そのプロフィールを変更できます。
- * 本番環境ではJWT等のトークンベース認証に移行してください。
+ * セッション整合性チェック: X-Trainer-Id と X-Trainer-Email の両方を検証し、
+ * GASでIDとEmailが一致するか確認することで、他人のプロフィール書き換えを防止する。
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const trainerId = request.headers.get('X-Trainer-Id');
-
-    if (!trainerId) {
+    // セッション整合性チェック (ID + Email の一致を検証)
+    const session = await verifyTrainerSession(request);
+    if (!session.ok) {
       return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
+        { error: session.error },
+        { status: session.status ?? 401 }
       );
     }
 
-    // ID形式検証（インジェクション対策）
-    if (!isValidId(trainerId)) {
-      return NextResponse.json(
-        { error: '無効な認証情報です' },
-        { status: 401 }
-      );
-    }
+    // 検証済みのtrainerIdを使用 (ヘッダーから直接取らない)
+    const trainerId = session.trainerId;
 
-    const body = await request.json();
+    const rawBody = await request.json();
+    // プロトタイプ汚染対策
+    const body = stripDangerousKeys(rawBody as Record<string, unknown>);
 
     // ホワイトリストフィルタリング + 値のバリデーション
     const updates: Record<string, unknown> = {};
@@ -151,12 +156,9 @@ export async function PATCH(request: NextRequest) {
           if (typeof value !== 'string') {
             return NextResponse.json({ error: '写真URLは文字列で指定してください' }, { status: 400 });
           }
-          // URL形式の簡易検証（httpまたはhttpsのみ許可）
-          if (value && !/^https?:\/\/.+/.test(value)) {
-            return NextResponse.json({ error: '写真URLの形式が正しくありません' }, { status: 400 });
-          }
-          if (!isWithinLength(value, 2048)) {
-            return NextResponse.json({ error: 'URLが長すぎます' }, { status: 400 });
+          // SSRF対策: httpsのみ許可、内部IP/localhostをブロック
+          if (value && !isValidExternalUrl(value)) {
+            return NextResponse.json({ error: '写真URLはhttps://で始まる外部URLのみ使用できます' }, { status: 400 });
           }
           updates[key] = value;
           break;

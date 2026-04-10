@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { stripDangerousKeys } from '@/lib/validation';
 
 interface BookingListItem {
   id: string;
@@ -57,7 +58,8 @@ export async function PATCH(request: NextRequest) {
 
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    const rawBody = await request.json();
+    body = stripDangerousKeys(rawBody as Record<string, unknown>);
   } catch {
     return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
   }

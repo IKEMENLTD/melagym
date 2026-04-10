@@ -70,7 +70,10 @@ export async function callGAS<T = Record<string, unknown>>(
 
     if (json.statusCode >= 400) {
       const errData = json.data as GASErrorData;
-      throw new Error(errData.error ?? `GAS API error: status ${json.statusCode}`);
+      // セキュリティ: GAS内部のエラーメッセージはログに記録し、外部には汎用メッセージを返す
+      const internalMessage = errData.error ?? `status ${json.statusCode}`;
+      console.error(`GAS API error (${action}): ${internalMessage}`);
+      throw new Error('バックエンドサービスでエラーが発生しました');
     }
 
     return json.data as T;

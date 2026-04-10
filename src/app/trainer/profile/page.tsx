@@ -14,7 +14,7 @@ interface TrainerProfileData {
   specialties: string[];
   bio: string;
   available_hours: { start: string; end: string };
-  google_calendar_id: string | null;
+  has_calendar_linked: boolean;
 }
 
 export default function TrainerProfile() {

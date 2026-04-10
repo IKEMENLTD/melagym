@@ -98,6 +98,11 @@ function doPost(e) {
     var action = payload.action;
     var params = payload.params || {};
 
+    // グローバルプロトタイプ汚染対策: paramsトップレベルの危険キーを除去
+    delete params['__proto__'];
+    delete params['constructor'];
+    delete params['prototype'];
+
     var handlers = {
       'getStores': getStores_,
       'getTrainers': getTrainers_,
@@ -240,6 +245,10 @@ function updateRowById_(sheetName, id, updates) {
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][idCol]) === String(id)) {
       for (var key in updates) {
+        // プロトタイプ汚染対策: 自身のプロパティのみ処理
+        if (!updates.hasOwnProperty(key)) continue;
+        // 危険なプロパティ名を拒否
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
         var col = headers.indexOf(key);
         if (col !== -1) {
           var value = updates[key];
@@ -511,8 +520,8 @@ function createBooking_(params) {
       trainer_id: data.trainer_id,
       store_id: data.store_id,
       scheduled_at: data.scheduled_at,
-      duration_minutes: data.duration_minutes || 60,
-      booking_type: data.booking_type,
+      duration_minutes: 60, // 固定値: クライアントからの改竄を防止
+      booking_type: (data.booking_type === 'first_visit' || data.booking_type === 'regular') ? data.booking_type : 'regular',
       status: 'confirmed',
       google_calendar_event_id: data.google_calendar_event_id || '',
       notes: truncateString_(data.notes || '', MAX_STRING_LENGTH),
@@ -725,6 +734,11 @@ function updateTrainer_(params) {
   }
   var updates = params.updates || {};
 
+  // プロトタイプ汚染対策: 危険なプロパティを除去
+  delete updates['__proto__'];
+  delete updates['constructor'];
+  delete updates['prototype'];
+
   // メールアドレス形式チェック（更新時）
   if (updates.email !== undefined && updates.email !== '' && !isValidEmail_(updates.email)) {
     return { success: false, error: 'メールアドレスの形式が不正です' };
@@ -807,7 +821,15 @@ function addTrainer_(params) {
  */
 function updateStore_(params) {
   var id = params.id;
+  if (!id || !isValidId_(String(id))) {
+    return { success: false, error: '不正な店舗IDです' };
+  }
   var updates = params.updates || {};
+
+  // プロトタイプ汚染対策: 危険なプロパティを除去
+  delete updates['__proto__'];
+  delete updates['constructor'];
+  delete updates['prototype'];
 
   // JSONフィールドのマッピング
   if (updates.business_hours !== undefined) {
@@ -844,6 +866,11 @@ function upsertCustomer_(params) {
   if (!data) {
     return { success: false, error: '顧客データが不足しています' };
   }
+
+  // プロトタイプ汚染対策: 危険なプロパティを除去
+  delete data['__proto__'];
+  delete data['constructor'];
+  delete data['prototype'];
 
   // メールアドレス形式チェック
   if (data.email && !isValidEmail_(data.email)) {

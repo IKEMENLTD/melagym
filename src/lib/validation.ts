@@ -74,6 +74,60 @@ export function isValidBookingStatus(status: string): boolean {
   return VALID_BOOKING_STATUSES.has(status);
 }
 
+/** プロトタイプ汚染に使われる危険なキー */
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/** オブジェクトからプロトタイプ汚染用キーを除去する */
+export function stripDangerousKeys(obj: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    if (!DANGEROUS_KEYS.has(key)) {
+      cleaned[key] = obj[key];
+    }
+  }
+  return cleaned;
+}
+
+/**
+ * URLのSSRFバリデーション
+ * - https:// のみ許可
+ * - 内部IP / ローカルホスト / メタデータエンドポイントをブロック
+ */
+export function isValidExternalUrl(url: string): boolean {
+  if (!url) return true; // 空文字はphoto_url未設定を意味するので許可
+  // httpsのみ許可
+  if (!url.startsWith('https://')) return false;
+  if (url.length > 2048) return false;
+
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // localhost / ループバック
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return false;
+    if (hostname === '[::1]') return false;
+
+    // 内部IP範囲をブロック
+    // 10.0.0.0/8
+    if (/^10\./.test(hostname)) return false;
+    // 172.16.0.0/12
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return false;
+    // 192.168.0.0/16
+    if (/^192\.168\./.test(hostname)) return false;
+    // 169.254.0.0/16 (AWS metadata等)
+    if (/^169\.254\./.test(hostname)) return false;
+    // 0.0.0.0
+    if (hostname === '0.0.0.0') return false;
+
+    // file:// scheme (URLコンストラクタで変換された場合)
+    if (parsed.protocol !== 'https:') return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** business_hoursオブジェクトのバリデーション */
 export function isValidBusinessHours(
   hours: Record<string, { open: string; close: string } | null>

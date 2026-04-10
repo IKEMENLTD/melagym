@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
-import { isValidId } from '@/lib/validation';
+import { verifyTrainerSession } from '@/lib/trainer-session-verify';
 
 interface TrainerBooking {
   id: string;
@@ -15,34 +15,26 @@ interface TrainerBooking {
 }
 
 /**
- * GET: トレーナーIDで自分の予約一覧を取得
+ * GET: トレーナーの予約一覧を取得
  *
- * セキュリティ警告: X-Trainer-Id ヘッダーはクライアントが自由に設定可能です。
- * 他のトレーナーのIDを指定すれば、その予約一覧を閲覧できます。
- * 本番環境ではJWT等のトークンベース認証に移行してください。
+ * セッション整合性チェック: X-Trainer-Id と X-Trainer-Email の両方を検証し、
+ * GASでIDとEmailが一致するか確認することで、他人のスケジュール閲覧を防止する。
  */
 export async function GET(request: NextRequest) {
   try {
-    const trainerId = request.headers.get('X-Trainer-Id');
-
-    if (!trainerId) {
+    // セッション整合性チェック (ID + Email の一致を検証)
+    const session = await verifyTrainerSession(request);
+    if (!session.ok) {
       return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
+        { error: session.error },
+        { status: session.status ?? 401 }
       );
     }
 
-    // ID形式検証（インジェクション対策）
-    if (!isValidId(trainerId)) {
-      return NextResponse.json(
-        { error: '無効な認証情報です' },
-        { status: 401 }
-      );
-    }
-
+    // 検証済みのtrainerIdを使用 (ヘッダーから直接取らない)
     const result = await callGAS<{ bookings: TrainerBooking[] }>(
       'getTrainerBookings',
-      { trainer_id: trainerId }
+      { trainer_id: session.trainerId }
     );
 
     return NextResponse.json({ bookings: result.bookings });

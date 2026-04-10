@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBooking, cancelBooking } from '@/lib/booking';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { stripDangerousKeys } from '@/lib/validation';
 import type { BookingRequest } from '@/types/database';
 
 // IDフォーマット: 英数字・ハイフン・アンダースコアのみ許可
@@ -23,7 +24,8 @@ function truncate(value: string, maxLength: number): string {
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
   try {
-    body = await request.json() as Record<string, unknown>;
+    const rawBody = await request.json();
+    body = stripDangerousKeys(rawBody as Record<string, unknown>);
   } catch {
     return NextResponse.json(
       { success: false, error: 'リクエストボディのJSON形式が不正です' },

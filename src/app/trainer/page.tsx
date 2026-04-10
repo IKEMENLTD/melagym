@@ -18,7 +18,7 @@ interface TrainerBooking {
 }
 
 interface TrainerProfile {
-  google_calendar_id: string | null;
+  has_calendar_linked: boolean;
 }
 
 function formatTime(isoString: string): string {
@@ -147,7 +147,7 @@ export default function TrainerDashboard() {
       setBookings(scheduleData.bookings ?? []);
 
       const profile = profileData.trainer as TrainerProfile | null;
-      setCalendarLinked(!!profile?.google_calendar_id);
+      setCalendarLinked(!!profile?.has_calendar_linked);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'データの取得に失敗しました';
       setError(message);

@@ -77,12 +77,16 @@ export async function POST(request: NextRequest) {
       email: trimmedEmail,
     });
 
+    // セキュリティ: 既存メールでもメール列挙を防ぐため同じ成功レスポンスを返す
     if (existing.trainer) {
-      return NextResponse.json({ error: 'このメールアドレスは既に登録されています' }, { status: 409 });
+      return NextResponse.json({
+        success: true,
+        message: '登録を受け付けました。管理者の承認をお待ちください。',
+      });
     }
 
     // 新規トレーナー登録（is_active=false で登録、管理者承認待ち）
-    const result = await callGAS<{ success: boolean; id: string }>('addTrainer', {
+    await callGAS<{ success: boolean; id: string }>('addTrainer', {
       name: sanitizedName,
       email: trimmedEmail,
       phone: trimmedPhone,
@@ -95,7 +99,10 @@ export async function POST(request: NextRequest) {
       store_ids: [],
     });
 
-    return NextResponse.json({ success: true, id: result.id });
+    return NextResponse.json({
+      success: true,
+      message: '登録を受け付けました。管理者の承認をお待ちください。',
+    });
   } catch (error) {
     console.error('Trainer registration failed:', error);
     return NextResponse.json({ error: '登録に失敗しました' }, { status: 500 });

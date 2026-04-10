@@ -37,19 +37,11 @@ export async function POST(request: NextRequest) {
       { email: trimmedEmail }
     );
 
-    // セキュリティ: 存在しないメールと無効アカウントで同じレスポンスを返さない
-    // （ここではUXを優先して区別しているが、攻撃者によるアカウント列挙に注意）
-    if (!result.trainer) {
+    // セキュリティ: 存在しない・未承認の両方で同じレスポンスを返す（列挙攻撃防止）
+    if (!result.trainer || !result.trainer.is_active) {
       return NextResponse.json(
-        { error: '登録されていないメールアドレスです。新規登録がまだの方は「新規登録はこちら」からご登録ください。' },
-        { status: 404 }
-      );
-    }
-
-    if (!result.trainer.is_active) {
-      return NextResponse.json(
-        { error: 'このアカウントはまだ承認されていません。管理者の承認をお待ちください。' },
-        { status: 403 }
+        { error: 'メールアドレスまたはアカウントが無効です。新規登録がまだの方は「新規登録はこちら」からご登録ください。承認待ちの方は管理者の承認をお待ちください。' },
+        { status: 401 }
       );
     }
 

@@ -169,7 +169,9 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
     if (!result.success) {
       // 予約失敗時はカレンダーイベントを削除
       await deleteCalendarEvent(store.google_calendar_id, createdEventId);
-      return { success: false, error: result.error ?? '予約の登録に失敗しました' };
+      // セキュリティ: GAS内部エラーの詳細をクライアントに返さない
+      console.error('Booking creation failed on GAS:', result.error);
+      return { success: false, error: '予約の登録に失敗しました。時間をおいて再度お試しください' };
     }
 
     // キャッシュ無効化
@@ -284,7 +286,9 @@ export async function cancelBooking(
   }>('cancelBooking', { bookingId, reason });
 
   if (!result.success) {
-    return { success: false, error: result.error };
+    // セキュリティ: GAS内部エラーの詳細をクライアントに返さない
+    console.error('Booking cancellation failed on GAS:', result.error);
+    return { success: false, error: 'キャンセル処理に失敗しました' };
   }
 
   // Googleカレンダーからイベント削除

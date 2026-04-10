@@ -11,7 +11,8 @@ interface StoreDetail {
   name: string;
   area: string;
   address: string;
-  google_calendar_id: string;
+  has_calendar_linked: boolean;
+  calendar_id_masked: string | null;
   business_hours: Record<string, { open: string; close: string } | null>;
   is_active: boolean;
 }
@@ -141,9 +142,8 @@ export default function StoreDashboard() {
     );
   }
 
-  const calendarStatus = data.store.google_calendar_id
-    ? '連携済み'
-    : '未設定';
+  const calendarLinked = data.store.has_calendar_linked;
+  const calendarStatus = calendarLinked ? '連携済み' : '未設定';
 
   const statCards: {
     label: string;
@@ -172,10 +172,10 @@ export default function StoreDashboard() {
     {
       label: 'Googleカレンダー',
       value: calendarStatus,
-      bg: data.store.google_calendar_id ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]',
-      text: data.store.google_calendar_id ? 'text-[#22c55e]' : 'text-[#ef4444]',
+      bg: calendarLinked ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]',
+      text: calendarLinked ? 'text-[#22c55e]' : 'text-[#ef4444]',
       href: '/store/calendar',
-      subtitle: data.store.google_calendar_id ? '設定を確認' : '設定する',
+      subtitle: calendarLinked ? '設定を確認' : '設定する',
     },
     {
       label: '対応トレーナー',

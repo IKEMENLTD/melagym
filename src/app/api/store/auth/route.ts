@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
 import { stripHtmlTags, isWithinLength } from '@/lib/validation';
+import { timingSafeEqual } from 'crypto';
 
 interface StoreData {
   id: string;
@@ -10,6 +11,7 @@ interface StoreData {
   google_calendar_id: string;
   business_hours: Record<string, { open: string; close: string } | null>;
   is_active: boolean;
+  passcode?: string;
 }
 
 interface GetStoresResponse {
@@ -17,18 +19,33 @@ interface GetStoresResponse {
 }
 
 /**
- * POST: 店舗名で店舗を照合してログイン
+ * タイミング攻撃を防ぐ定数時間の文字列比較
+ */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf-8');
+  const bufB = Buffer.from(b, 'utf-8');
+  if (bufA.length !== bufB.length) {
+    timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
+
+/**
+ * POST: 店舗名 + パスコードで店舗を認証してログイン
  *
- * セキュリティ警告: 現在は店舗名のみで認証しており、パスワード検証がありません。
- * 店舗名を知っている第三者がアクセス可能です。
- * また、GET エンドポイントで店舗名一覧を公開しているため、
- * 実質的に誰でも任意の店舗としてログインできます。
- * 本番環境ではパスワード認証またはトークンベース認証の導入を強く推奨します。
+ * セキュリティ強化:
+ * - 店舗名だけでなくパスコード（4桁PIN等）による認証を追加
+ * - パスコードはGASの店舗データに passcode フィールドとして保存
+ * - パスコード未設定の店舗は環境変数 STORE_DEFAULT_PASSCODE にフォールバック
+ * - パスコード機能自体が未設定（環境変数なし + 店舗にもなし）の場合は従来通り名前のみ
+ *   (段階的導入が可能)
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = (await request.json()) as { storeName?: string };
+    const body = (await request.json()) as { storeName?: string; passcode?: string };
     const storeName = body.storeName;
+    const passcode = body.passcode;
 
     if (!storeName || typeof storeName !== 'string') {
       return NextResponse.json(
@@ -58,18 +75,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       name: sanitizedName,
     });
 
-    if (!result.store) {
+    // セキュリティ: 存在しない・無効の両方で同じレスポンスを返す（列挙攻撃防止）
+    if (!result.store || !result.store.is_active) {
       return NextResponse.json(
-        { error: '該当する店舗が見つかりません' },
-        { status: 404 }
+        { error: '店舗名が無効です。正しい店舗名を選択してください。' },
+        { status: 401 }
       );
     }
 
-    if (!result.store.is_active) {
-      return NextResponse.json(
-        { error: 'この店舗は現在無効です' },
-        { status: 403 }
-      );
+    // --- パスコード検証 ---
+    const storePasscode = result.store.passcode;
+    const defaultPasscode = process.env.STORE_DEFAULT_PASSCODE;
+    const expectedPasscode = storePasscode ?? defaultPasscode;
+
+    if (expectedPasscode) {
+      // パスコードが設定されている場合、必ず検証する
+      if (!passcode || typeof passcode !== 'string') {
+        return NextResponse.json(
+          { error: 'パスコードを入力してください', requiresPasscode: true },
+          { status: 401 }
+        );
+      }
+
+      // パスコード形式チェック (4-8桁の数字)
+      if (!/^\d{4,8}$/.test(passcode)) {
+        return NextResponse.json(
+          { error: 'パスコードは4〜8桁の数字です', requiresPasscode: true },
+          { status: 401 }
+        );
+      }
+
+      if (!safeCompare(passcode, expectedPasscode)) {
+        console.warn(
+          `[SECURITY] Store auth failed: incorrect passcode for store="${sanitizedName}"`
+        );
+        return NextResponse.json(
+          { error: 'パスコードが正しくありません', requiresPasscode: true },
+          { status: 401 }
+        );
+      }
     }
 
     return NextResponse.json({
@@ -91,10 +135,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 /**
  * GET: アクティブな店舗一覧を取得（ログイン画面のプルダウン用）
+ *
+ * セキュリティ注意: 店舗名一覧は公開情報として扱う。
+ * パスコード認証が導入されたため、名前を知っているだけではログインできない。
  */
 export async function GET(): Promise<NextResponse> {
   try {
     const result = await callGAS<GetStoresResponse>('getStores', { activeOnly: true });
+    // ID と名前のみ返す (パスコードや内部情報は返さない)
     const storeNames = result.stores.map((s) => ({
       id: s.id,
       name: s.name,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
-import { isValidId, isValidDate, isValidBookingStatus } from '@/lib/validation';
+import { isValidDate, isValidBookingStatus } from '@/lib/validation';
+import { verifyStoreSession } from '@/lib/store-session-verify';
 
 interface StoreBooking {
   id: string;
@@ -21,27 +22,20 @@ interface GetStoreBookingsResponse {
 /**
  * GET: store_idでこの店舗の予約一覧を取得
  *
- * セキュリティ警告: X-Store-Id ヘッダーはクライアントが自由に設定可能です。
- * 他店舗のIDを指定すれば、その予約一覧（顧客名等の個人情報を含む）を閲覧できます。
- * 本番環境ではJWT等のトークンベース認証に移行してください。
+ * セッション検証強化: X-Store-Id が実在するアクティブな店舗か GAS で検証する。
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const storeId = request.headers.get('X-Store-Id');
-    if (!storeId) {
+    // 店舗セッション検証 (実在するアクティブな店舗か確認)
+    const session = await verifyStoreSession(request);
+    if (!session.ok) {
       return NextResponse.json(
-        { error: '店舗認証が必要です' },
-        { status: 401 }
+        { error: session.error },
+        { status: session.status ?? 401 }
       );
     }
 
-    // ID形式検証（インジェクション対策）
-    if (!isValidId(storeId)) {
-      return NextResponse.json(
-        { error: '無効な店舗IDです' },
-        { status: 401 }
-      );
-    }
+    const storeId = session.storeId;
 
     const { searchParams } = new URL(request.url);
 

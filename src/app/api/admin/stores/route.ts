@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { stripDangerousKeys } from '@/lib/validation';
 import type { Store } from '@/types/database';
 
 const ALLOWED_UPDATE_FIELDS = new Set([
@@ -76,12 +77,14 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
   }
 
-  const { id, ...rawUpdates } = body;
+  const { id, ...dirtyUpdates } = body;
 
   if (!id || typeof id !== 'string') {
     return NextResponse.json({ error: 'IDは必須です' }, { status: 400 });
   }
 
+  // プロトタイプ汚染対策 + ホワイトリストフィルタリング
+  const rawUpdates = stripDangerousKeys(dirtyUpdates as Record<string, unknown>);
   const updates: Record<string, unknown> = {};
   for (const key of Object.keys(rawUpdates)) {
     if (ALLOWED_UPDATE_FIELDS.has(key)) {

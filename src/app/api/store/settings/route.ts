@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callGAS } from '@/lib/sheets-api';
-import { isValidId, isValidBusinessHours } from '@/lib/validation';
+import { isValidBusinessHours, stripDangerousKeys } from '@/lib/validation';
+import { verifyStoreSession } from '@/lib/store-session-verify';
 
 interface StoreDetail {
   id: string;
@@ -27,27 +28,20 @@ interface GetTrainersResponse {
 /**
  * GET: store_idで店舗情報を取得（トレーナー一覧含む）
  *
- * セキュリティ警告: X-Store-Id ヘッダーはクライアントが自由に設定可能です。
- * 他店舗のIDを指定すれば、その店舗情報・トレーナー一覧を閲覧できます。
- * 本番環境ではJWT等のトークンベース認証に移行してください。
+ * セッション検証強化: X-Store-Id が実在するアクティブな店舗か GAS で検証する。
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const storeId = request.headers.get('X-Store-Id');
-    if (!storeId) {
+    // 店舗セッション検証 (実在するアクティブな店舗か確認)
+    const session = await verifyStoreSession(request);
+    if (!session.ok) {
       return NextResponse.json(
-        { error: '店舗認証が必要です' },
-        { status: 401 }
+        { error: session.error },
+        { status: session.status ?? 401 }
       );
     }
 
-    // ID形式検証（インジェクション対策）
-    if (!isValidId(storeId)) {
-      return NextResponse.json(
-        { error: '無効な店舗IDです' },
-        { status: 401 }
-      );
-    }
+    const storeId = session.storeId;
 
     // 店舗一覧から該当店舗を取得
     const storesResult = await callGAS<{ stores: StoreDetail[] }>('getStores', {});
@@ -65,8 +59,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       storeId,
     });
 
+    // セキュリティ: google_calendar_id の生値をクライアントに返さない
+    // 連携状態と一部マスクした表示用文字列のみ返す
+    const calId = store.google_calendar_id;
+    const safeStore = {
+      id: store.id,
+      name: store.name,
+      area: store.area,
+      address: store.address,
+      business_hours: store.business_hours,
+      is_active: store.is_active,
+      has_calendar_linked: !!calId,
+      calendar_id_masked: calId
+        ? `${calId.slice(0, 8)}...${calId.slice(-20)}`
+        : null,
+    };
+
     return NextResponse.json({
-      store,
+      store: safeStore,
       trainers: trainersResult.trainers,
     });
   } catch (error) {
@@ -81,29 +91,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 /**
  * PATCH: 営業時間等の店舗設定を更新
  *
- * セキュリティ警告: X-Store-Id ヘッダーはクライアントが自由に設定可能です。
- * 他店舗のIDを指定すれば、その店舗の営業時間を変更できます。
- * 本番環境ではJWT等のトークンベース認証に移行してください。
+ * セッション検証強化: X-Store-Id が実在するアクティブな店舗か GAS で検証する。
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
-    const storeId = request.headers.get('X-Store-Id');
-    if (!storeId) {
+    // 店舗セッション検証 (実在するアクティブな店舗か確認)
+    const session = await verifyStoreSession(request);
+    if (!session.ok) {
       return NextResponse.json(
-        { error: '店舗認証が必要です' },
-        { status: 401 }
+        { error: session.error },
+        { status: session.status ?? 401 }
       );
     }
 
-    // ID形式検証（インジェクション対策）
-    if (!isValidId(storeId)) {
-      return NextResponse.json(
-        { error: '無効な店舗IDです' },
-        { status: 401 }
-      );
-    }
+    const storeId = session.storeId;
 
-    const body = (await request.json()) as {
+    const rawBody = await request.json();
+    // プロトタイプ��染対策
+    const body = stripDangerousKeys(rawBody as Record<string, unknown>) as {
       business_hours?: Record<string, { open: string; close: string } | null>;
     };
 

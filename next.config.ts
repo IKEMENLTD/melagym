@@ -21,9 +21,18 @@ const securityHeaders = [
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=()',
   },
+  {
+    // HSTS: HTTPS接続を強制（1年間、サブドメイン含む）
+    key: 'Strict-Transport-Security',
+    value: 'max-age=31536000; includeSubDomains',
+  },
 ];
 
 const nextConfig: NextConfig = {
+  // セキュリティ: X-Powered-By ヘッダーを無効化（サーバー技術の露出防止）
+  poweredByHeader: false,
+  // セキュリティ: 本番環境でソースマップを公開しない
+  productionBrowserSourceMaps: false,
   images: {
     formats: ['image/avif', 'image/webp'],
   },
