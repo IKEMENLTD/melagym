@@ -256,7 +256,7 @@ export default function StoreDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mela-bg-gym">
       <h1 className="text-2xl font-bold text-black">ダッシュボード</h1>
 
       {/* 統計カード */}

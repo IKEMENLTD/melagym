@@ -213,7 +213,7 @@ export default function TrainersPage() {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mela-bg-training">
       {/* 招待URL */}
       <div className="bg-[#fff5f0] border border-[#ff5000]/20 p-4 rounded-lg">
         <p className="text-sm font-bold text-black mb-2">トレーナー招待URL</p>

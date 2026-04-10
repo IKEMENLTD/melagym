@@ -347,7 +347,7 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white mela-bg-gym">
       {/* ヘッダー */}
       <header className="bg-white border-b border-[#d9d9d9] sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3">

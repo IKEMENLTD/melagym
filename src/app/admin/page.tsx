@@ -115,7 +115,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mela-bg-training">
       <h1 className="text-2xl font-bold text-black">ダッシュボード</h1>
 
       {/* 各種URL */}
