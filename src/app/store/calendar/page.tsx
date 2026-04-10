@@ -66,6 +66,14 @@ function formStateToBusinessHours(
   return hours;
 }
 
+interface CalendarCheckResult {
+  ok: boolean;
+  calendar_id_masked: string | null;
+  error_detail?: string;
+}
+
+type CalendarCheckStatus = 'idle' | 'checking' | 'success' | 'error';
+
 export default function CalendarSettingsPage() {
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [formState, setFormState] = useState<Record<string, DayFormState>>({});
@@ -73,6 +81,8 @@ export default function CalendarSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [calCheckStatus, setCalCheckStatus] = useState<CalendarCheckStatus>('idle');
+  const [calCheckResult, setCalCheckResult] = useState<CalendarCheckResult | null>(null);
 
   useEffect(() => {
     storeFetch('/api/store/settings')
@@ -130,6 +140,36 @@ export default function CalendarSettingsPage() {
     }
   }, [formState]);
 
+  const handleCalendarCheck = useCallback(async () => {
+    setCalCheckStatus('checking');
+    setCalCheckResult(null);
+
+    try {
+      const res = await storeFetch('/api/store/calendar-check');
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setCalCheckStatus('error');
+        setCalCheckResult({
+          ok: false,
+          calendar_id_masked: null,
+          error_detail: data.error ?? 'カレンダー連携の確認に失敗しました',
+        });
+        return;
+      }
+
+      const result = (await res.json()) as CalendarCheckResult;
+      setCalCheckStatus(result.ok ? 'success' : 'error');
+      setCalCheckResult(result);
+    } catch {
+      setCalCheckStatus('error');
+      setCalCheckResult({
+        ok: false,
+        calendar_id_masked: null,
+        error_detail: '通信エラーが発生しました。再度お試しください。',
+      });
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -161,11 +201,47 @@ export default function CalendarSettingsPage() {
       <div className="bg-white border border-[#d9d9d9] rounded-lg p-4 sm:p-6">
         <h2 className="font-bold text-black mb-3">Googleカレンダー連携</h2>
         {store.has_calendar_linked ? (
-          <div className="flex items-center gap-3">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#22c55e]" />
-            <span className="text-sm text-[#4d4d4d] break-all">
-              連携済み ({store.calendar_id_masked})
-            </span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#22c55e]" />
+              <span className="text-sm text-[#4d4d4d] break-all">
+                連携済み ({store.calendar_id_masked})
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCalendarCheck}
+                disabled={calCheckStatus === 'checking'}
+                className="px-4 py-2 text-sm font-bold border border-[#d9d9d9] bg-white text-[#4d4d4d] rounded-full hover:bg-[#f8f8f8] hover:border-[#999] transition-all disabled:opacity-50"
+              >
+                {calCheckStatus === 'checking' ? '確認中...' : '連携テスト'}
+              </button>
+              {calCheckStatus === 'success' && calCheckResult?.ok && (
+                <span className="text-sm font-medium text-[#22c55e]">
+                  連携OK - カレンダーにアクセスできます
+                </span>
+              )}
+            </div>
+            {calCheckStatus === 'error' && calCheckResult && !calCheckResult.ok && (
+              <div className="p-3 bg-[#fef2f2] border border-[#fecaca] rounded text-sm">
+                <p className="font-medium text-[#ef4444] mb-2">
+                  アクセスできません
+                </p>
+                {calCheckResult.error_detail && (
+                  <p className="text-[#606060] text-xs mb-2">{calCheckResult.error_detail}</p>
+                )}
+                <div className="mt-2 p-2 bg-white border border-[#e5e5e5] rounded text-xs text-[#606060] leading-relaxed">
+                  <p className="font-medium text-[#4d4d4d] mb-1">共有設定の手順:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Googleカレンダーを開き、対象カレンダーの「設定と共有」を選択</li>
+                    <li>「特定のユーザーとの共有」セクションで「ユーザーを追加」をクリック</li>
+                    <li>サービスアカウントのメールアドレスを入力</li>
+                    <li>権限を「予定の変更」に設定して「送信」をクリック</li>
+                    <li>設定後、このページで再度「連携テスト」を押して確認してください</li>
+                  </ol>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

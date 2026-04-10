@@ -19,6 +19,7 @@ interface TrainerBooking {
 
 interface TrainerProfile {
   has_calendar_linked: boolean;
+  google_calendar_id: string | null;
 }
 
 function formatTime(isoString: string): string {
@@ -121,6 +122,7 @@ function BookingCard({ booking }: { booking: TrainerBooking }) {
 export default function TrainerDashboard() {
   const [bookings, setBookings] = useState<TrainerBooking[]>([]);
   const [calendarLinked, setCalendarLinked] = useState(false);
+  const [calendarDisplayId, setCalendarDisplayId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -148,6 +150,7 @@ export default function TrainerDashboard() {
 
       const profile = profileData.trainer as TrainerProfile | null;
       setCalendarLinked(!!profile?.has_calendar_linked);
+      setCalendarDisplayId(profile?.google_calendar_id ?? null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'データの取得に失敗しました';
       setError(message);
@@ -210,18 +213,42 @@ export default function TrainerDashboard() {
       <div className="bg-white p-4 rounded-lg border border-[#d9d9d9]">
         <h2 className="text-sm font-bold text-[#000000] mb-2">Googleカレンダー連携</h2>
         {calendarLinked ? (
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
-            <span className="text-sm text-[#22c55e] font-bold">連携済み</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+              <span className="text-sm text-[#22c55e] font-bold">連携済み</span>
+            </div>
+            {calendarDisplayId && (
+              <p className="text-xs text-[#909090]">
+                カレンダー: {calendarDisplayId.length > 20
+                  ? `${calendarDisplayId.slice(0, 10)}...${calendarDisplayId.slice(-10)}`
+                  : calendarDisplayId}
+              </p>
+            )}
+            <a
+              href="/trainer/profile"
+              className="inline-block text-xs text-[#ff5000] hover:underline"
+            >
+              設定を変更する
+            </a>
           </div>
         ) : (
-          <div>
-            <p className="text-sm text-[#606060] mb-3">
+          <div className="space-y-3">
+            <p className="text-sm text-[#606060]">
               Googleカレンダーと連携すると、予約がカレンダーに自動追加されます。
             </p>
-            <p className="text-xs text-[#606060]">
-              ※連携は管理者にお問い合わせください
-            </p>
+            <a
+              href="/trainer/profile"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold bg-[#ff5000] text-white rounded-full hover:bg-[#e64800] transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              プロフィールからカレンダーを連携する
+            </a>
           </div>
         )}
       </div>

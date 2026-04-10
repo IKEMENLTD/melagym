@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // セキュリティ: google_calendar_id 等の内部情報をクライアントに返さない
-    // 連携状態のみ boolean で返す
+    // カレンダーIDはトレーナー本人に表示する（連携管理のため）
+    const calendarId = result.trainer.google_calendar_id ?? null;
     const safeTrainer = {
       id: result.trainer.id,
       name: result.trainer.name,
@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
       is_first_visit_eligible: result.trainer.is_first_visit_eligible,
       is_active: result.trainer.is_active,
       available_hours: result.trainer.available_hours,
-      has_calendar_linked: !!result.trainer.google_calendar_id,
+      has_calendar_linked: !!calendarId,
+      google_calendar_id: calendarId,
     };
 
     return NextResponse.json({ trainer: safeTrainer });
@@ -73,6 +74,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   'bio',
   'photo_url',
   'available_hours',
+  'google_calendar_id',
 ]);
 
 /**
@@ -172,6 +174,27 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: '利用可能時間の形式が正しくありません（HH:MM）' }, { status: 400 });
           }
           updates[key] = { start: hours.start, end: hours.end };
+          break;
+        }
+        case 'google_calendar_id': {
+          if (typeof value !== 'string') {
+            return NextResponse.json({ error: 'カレンダーIDは文字列で指定してください' }, { status: 400 });
+          }
+          const trimmedCalId = stripHtmlTags(value.trim());
+          // 空文字は連携解除を意味する
+          if (trimmedCalId === '') {
+            updates[key] = null;
+          } else {
+            // メールアドレス形式 or Google Calendar ID形式
+            const calIdPattern = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+            if (!calIdPattern.test(trimmedCalId) && !trimmedCalId.endsWith('@group.calendar.google.com')) {
+              return NextResponse.json({ error: 'カレンダーIDの形式が正しくありません' }, { status: 400 });
+            }
+            if (!isWithinLength(trimmedCalId, 254)) {
+              return NextResponse.json({ error: 'カレンダーIDは254文字以内で入力してください' }, { status: 400 });
+            }
+            updates[key] = trimmedCalId;
+          }
           break;
         }
       }

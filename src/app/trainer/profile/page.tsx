@@ -15,6 +15,39 @@ interface TrainerProfileData {
   bio: string;
   available_hours: { start: string; end: string };
   has_calendar_linked: boolean;
+  google_calendar_id: string | null;
+}
+
+const SERVICE_ACCOUNT_EMAIL = 'melagym@instagram-generator-472905.iam.gserviceaccount.com';
+
+interface CalendarCheckResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+function copyToClipboard(text: string): Promise<boolean> {
+  if (navigator.clipboard) {
+    return navigator.clipboard.writeText(text).then(() => true).catch(() => fallbackCopy(text));
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+
+function fallbackCopy(text: string): boolean {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  let success = false;
+  try {
+    success = document.execCommand('copy');
+  } catch {
+    success = false;
+  }
+  document.body.removeChild(textarea);
+  return success;
 }
 
 export default function TrainerProfile() {
@@ -32,6 +65,13 @@ export default function TrainerProfile() {
   const [photoUrl, setPhotoUrl] = useState('');
   const [availableStart, setAvailableStart] = useState('09:00');
   const [availableEnd, setAvailableEnd] = useState('21:00');
+
+  // カレンダー連携 state
+  const [calendarId, setCalendarId] = useState('');
+  const [calendarChecking, setCalendarChecking] = useState(false);
+  const [calendarCheckResult, setCalendarCheckResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [calendarSaving, setCalendarSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -52,6 +92,7 @@ export default function TrainerProfile() {
       setPhotoUrl(t.photo_url ?? '');
       setAvailableStart(t.available_hours?.start ?? '09:00');
       setAvailableEnd(t.available_hours?.end ?? '21:00');
+      setCalendarId(t.google_calendar_id ?? '');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'データの取得に失敗しました';
       setError(message);
@@ -68,6 +109,71 @@ export default function TrainerProfile() {
     setToast(message);
     setTimeout(() => setToast(''), 3000);
   }, []);
+
+  const handleCopyEmail = useCallback(async () => {
+    const success = await copyToClipboard(SERVICE_ACCOUNT_EMAIL);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, []);
+
+  const handleCalendarCheck = useCallback(async () => {
+    if (calendarChecking || !calendarId.trim()) return;
+
+    setCalendarChecking(true);
+    setCalendarCheckResult(null);
+
+    try {
+      const res = await trainerFetch('/api/trainer/calendar-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ calendar_id: calendarId.trim() }),
+      });
+      const data = await res.json() as CalendarCheckResponse;
+
+      if (data.success) {
+        setCalendarCheckResult({ success: true, message: data.message ?? '連携確認OK' });
+      } else {
+        setCalendarCheckResult({ success: false, message: data.error ?? 'アクセスできません' });
+      }
+    } catch {
+      setCalendarCheckResult({ success: false, message: 'カレンダーの確認に失敗しました' });
+    } finally {
+      setCalendarChecking(false);
+    }
+  }, [calendarChecking, calendarId]);
+
+  const handleCalendarSave = useCallback(async () => {
+    if (calendarSaving) return;
+
+    setCalendarSaving(true);
+    setError('');
+
+    try {
+      const res = await trainerFetch('/api/trainer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          google_calendar_id: calendarId.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        throw new Error(data.error ?? 'カレンダーIDの保存に失敗しました');
+      }
+
+      showToast(calendarId.trim() ? 'カレンダーIDを保存しました' : 'カレンダー連携を解除しました');
+      // プロフィールを再取得して状態を更新
+      await fetchProfile();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'カレンダーIDの保存に失敗しました';
+      setError(message);
+    } finally {
+      setCalendarSaving(false);
+    }
+  }, [calendarSaving, calendarId, showToast, fetchProfile]);
 
   const handleSave = useCallback(
     async (e: React.FormEvent) => {
@@ -355,6 +461,140 @@ export default function TrainerProfile() {
           )}
         </button>
       </form>
+
+      {/* Googleカレンダー連携 */}
+      <div className="bg-white p-4 rounded-lg border border-[#d9d9d9] space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#000000]">Googleカレンダー連携</h2>
+          <div className="flex items-center gap-2">
+            {profile?.has_calendar_linked ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                <span className="text-xs text-[#22c55e] font-bold">連携済み</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-[#d9d9d9]" />
+                <span className="text-xs text-[#909090] font-bold">未連携</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <p className="text-xs text-[#606060]">
+          Googleカレンダーと連携すると、予約がカレンダーに自動追加され、空き状況が自動で反映されます。
+        </p>
+
+        {/* 連携手順 */}
+        <div className="bg-[#f8f8f8] p-4 rounded-lg space-y-3">
+          <p className="text-xs font-bold text-[#000000]">連携手順</p>
+          <ol className="text-xs text-[#606060] space-y-2 list-decimal list-inside">
+            <li>Googleカレンダーを開く</li>
+            <li>「設定と共有」から「特定のユーザーとの共有」を開く</li>
+            <li>
+              以下のメールアドレスを追加:
+              <div className="mt-1 flex items-center gap-2">
+                <code className="text-[10px] bg-white px-2 py-1 rounded border border-[#d9d9d9] break-all select-all flex-1">
+                  {SERVICE_ACCOUNT_EMAIL}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyEmail}
+                  className="shrink-0 px-3 py-1 text-xs bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#4d4d4d] rounded-full border border-[#d9d9d9] transition-colors"
+                >
+                  {copied ? 'コピー済み' : 'コピー'}
+                </button>
+              </div>
+            </li>
+            <li>権限:「予定の変更」を選択</li>
+            <li>下のフォームにカレンダーIDを入力して保存</li>
+          </ol>
+          <p className="text-[10px] text-[#909090]">
+            ※ カレンダーIDは通常Gmailアドレスと同じです。Googleカレンダーの「設定と共有」→「カレンダーの統合」で確認できます。
+          </p>
+        </div>
+
+        {/* カレンダーID入力 */}
+        <div>
+          <label htmlFor="calendarId" className="block text-xs text-[#606060] mb-1">
+            カレンダーID
+          </label>
+          <input
+            id="calendarId"
+            type="text"
+            value={calendarId}
+            onChange={(e) => {
+              setCalendarId(e.target.value);
+              setCalendarCheckResult(null);
+            }}
+            className="w-full px-4 py-3 border border-[#d9d9d9] text-sm rounded-lg"
+            placeholder="example@gmail.com"
+          />
+        </div>
+
+        {/* 確認結果 */}
+        {calendarCheckResult && (
+          <div
+            className={`text-xs p-3 rounded-lg ${
+              calendarCheckResult.success
+                ? 'bg-green-50 border border-green-200 text-green-700'
+                : 'bg-red-50 border border-red-200 text-red-600'
+            }`}
+          >
+            {calendarCheckResult.message}
+          </div>
+        )}
+
+        {/* ボタン */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleCalendarCheck}
+            disabled={calendarChecking || !calendarId.trim()}
+            className="flex-1 py-2.5 text-sm font-bold border-2 border-[#ff5000] text-[#ff5000] rounded-full hover:bg-[#fff5f0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {calendarChecking ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="mela-spinner-sm" />
+                確認中...
+              </span>
+            ) : (
+              '連携を確認'
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleCalendarSave}
+            disabled={calendarSaving}
+            className="flex-1 py-2.5 text-sm font-bold bg-[#ff5000] text-white rounded-full hover:bg-[#e64800] transition-colors disabled:opacity-50"
+          >
+            {calendarSaving ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="mela-spinner-sm" />
+                保存中...
+              </span>
+            ) : (
+              'カレンダーIDを保存'
+            )}
+          </button>
+        </div>
+
+        {/* 連携解除 */}
+        {profile?.has_calendar_linked && (
+          <div className="pt-2 border-t border-[#f0f0f0]">
+            <button
+              type="button"
+              onClick={() => {
+                setCalendarId('');
+                setCalendarCheckResult(null);
+              }}
+              className="text-xs text-[#909090] hover:text-[#606060] transition-colors"
+            >
+              カレンダーIDをクリアして保存すると連携を解除できます
+            </button>
+          </div>
+        )}
+      </div>
 
       <HelpGuide steps={trainerProfileGuide} pageTitle="プロフィール編集" />
     </div>

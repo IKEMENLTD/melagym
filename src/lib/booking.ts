@@ -73,7 +73,8 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
 
   // FreeBusy APIでリアルタイム空き確認
   const slotEnd = addMinutes(new Date(req.slot_start), durationMinutes).toISOString();
-  const calendarIds = [store.google_calendar_id];
+  const calendarIds: string[] = [];
+  if (store.google_calendar_id) calendarIds.push(store.google_calendar_id);
   if (trainer.google_calendar_id) calendarIds.push(trainer.google_calendar_id);
 
   const busyMap = await getFreeBusy(calendarIds, req.slot_start, slotEnd);
@@ -81,29 +82,33 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
   const trainerBusy = trainer.google_calendar_id
     ? (busyMap.get(trainer.google_calendar_id) ?? [])
     : [];
-  const storeBusy = busyMap.get(store.google_calendar_id) ?? [];
+  const storeBusy = store.google_calendar_id
+    ? (busyMap.get(store.google_calendar_id) ?? [])
+    : [];
 
   if (trainerBusy.length > 0 || storeBusy.length > 0) {
     return { success: false, error: 'この時間枠は既に埋まっています。別の時間をお選びください' };
   }
 
-  // Googleカレンダーにイベント書込み
+  // Googleカレンダーにイベント書込み（カレンダーIDが設定されている場合のみ）
   const eventSummary = `[メラジム] ${req.booking_type === 'first_visit' ? '体験' : 'セッション'} - ${req.customer.name ?? '顧客'}`;
   const eventDescription = `トレーナー: ${trainer.name}\n店舗: ${store.name}`;
 
   let createdEventId: string | null = null;
 
   try {
-    createdEventId = await createCalendarEvent(
-      store.google_calendar_id,
-      eventSummary,
-      req.slot_start,
-      slotEnd,
-      eventDescription
-    );
+    if (store.google_calendar_id) {
+      createdEventId = await createCalendarEvent(
+        store.google_calendar_id,
+        eventSummary,
+        req.slot_start,
+        slotEnd,
+        eventDescription
+      );
 
-    if (!createdEventId) {
-      return { success: false, error: 'カレンダーへの登録に失敗しました。もう一度お試しください' };
+      if (!createdEventId) {
+        return { success: false, error: 'カレンダーへの登録に失敗しました。もう一度お試しください' };
+      }
     }
 
     // 顧客レコード作成/更新
@@ -168,7 +173,9 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
 
     if (!result.success) {
       // 予約失敗時はカレンダーイベントを削除
-      await deleteCalendarEvent(store.google_calendar_id, createdEventId);
+      if (store.google_calendar_id && createdEventId) {
+        await deleteCalendarEvent(store.google_calendar_id, createdEventId);
+      }
       // セキュリティ: GAS内部エラーの詳細をクライアントに返さない
       console.error('Booking creation failed on GAS:', result.error);
       return { success: false, error: '予約の登録に失敗しました。時間をおいて再度お試しください' };
@@ -185,7 +192,7 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
     return { success: true, booking: result.booking };
   } catch (error) {
     // rollback: clean up calendar event if it was created
-    if (createdEventId) {
+    if (createdEventId && store.google_calendar_id) {
       try {
         await deleteCalendarEvent(store.google_calendar_id, createdEventId);
       } catch {

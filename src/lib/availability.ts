@@ -74,7 +74,7 @@ export async function getAvailability(
   // FreeBusy APIで両方の忙しい時間を取得
   const calendarIds: string[] = [];
   if (trainer.google_calendar_id) calendarIds.push(trainer.google_calendar_id);
-  calendarIds.push(store.google_calendar_id);
+  if (store.google_calendar_id) calendarIds.push(store.google_calendar_id);
 
   const busyMap = await getFreeBusy(calendarIds, dayStart, dayEnd);
 
@@ -87,7 +87,9 @@ export async function getAvailability(
     : [];
 
   // 店舗のbusy時間
-  const storeBusy = busyMap.get(store.google_calendar_id) ?? [];
+  const storeBusy = store.google_calendar_id
+    ? (busyMap.get(store.google_calendar_id) ?? [])
+    : [];
 
   // 営業時間を取得
   const dayOfWeek = format(parseISO(date), 'EEEE').toLowerCase();
