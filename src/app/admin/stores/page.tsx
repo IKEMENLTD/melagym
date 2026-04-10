@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Store } from '@/types/database';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface EditStoreForm {
   name: string;
@@ -22,7 +23,7 @@ export default function StoresPage() {
   const loadStores = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/admin/stores')
+    adminFetch('/api/admin/stores')
       .then((r) => {
         if (!r.ok) throw new Error('店舗情報の取得に失敗しました');
         return r.json();
@@ -65,7 +66,7 @@ export default function StoresPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/stores', {
+      const res = await adminFetch('/api/admin/stores', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,7 +93,7 @@ export default function StoresPage() {
 
   async function toggleStoreActive(store: Store) {
     try {
-      const res = await fetch('/api/admin/stores', {
+      const res = await adminFetch('/api/admin/stores', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: store.id, is_active: !store.is_active }),

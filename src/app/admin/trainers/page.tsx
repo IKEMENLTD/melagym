@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Trainer, Store } from '@/types/database';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface TrainerWithStores extends Trainer {
   stores: { store_id: string; store_name: string }[];
@@ -43,7 +44,7 @@ export default function TrainersPage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetch('/api/admin/trainers').then((r) => {
+      adminFetch('/api/admin/trainers').then((r) => {
         if (!r.ok) throw new Error('トレーナー情報の取得に失敗しました');
         return r.json();
       }),
@@ -67,7 +68,7 @@ export default function TrainersPage() {
 
   async function toggleFirstVisit(trainerId: string, currentValue: boolean) {
     try {
-      const res = await fetch('/api/admin/trainers', {
+      const res = await adminFetch('/api/admin/trainers', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: trainerId, is_first_visit_eligible: !currentValue }),
@@ -85,7 +86,7 @@ export default function TrainersPage() {
 
   async function toggleActive(trainerId: string, currentValue: boolean) {
     try {
-      const res = await fetch('/api/admin/trainers', {
+      const res = await adminFetch('/api/admin/trainers', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: trainerId, is_active: !currentValue }),
@@ -116,7 +117,7 @@ export default function TrainersPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/admin/trainers', {
+      const res = await adminFetch('/api/admin/trainers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

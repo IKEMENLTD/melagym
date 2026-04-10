@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { isLoggedIn, setAdminToken } from '@/lib/admin-fetch';
 
 interface NavIcon {
   paths: string[];
@@ -54,6 +55,48 @@ const NAV_ITEMS: { href: string; label: string; icon: NavIcon }[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [authError, setAuthError] = useState(false);
+
+  useEffect(() => {
+    setAuthed(isLoggedIn());
+  }, []);
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!tokenInput.trim()) return;
+    setAdminToken(tokenInput.trim());
+    setAuthed(true);
+    setAuthError(false);
+  }
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center p-4">
+        <form onSubmit={handleLogin} className="bg-white p-8 w-full max-w-sm space-y-4 shadow-sm">
+          <div className="flex justify-center">
+            <Image src="/images/mela-logo-dark.svg" alt="mela gym" width={140} height={79} />
+          </div>
+          <p className="text-center text-sm text-[#606060]">管理画面ログイン</p>
+          {authError && <p className="text-sm text-red-500 text-center">認証に失敗しました</p>}
+          <input
+            type="password"
+            value={tokenInput}
+            onChange={(e) => setTokenInput(e.target.value)}
+            placeholder="管理者トークンを入力"
+            className="w-full px-4 py-3 border border-[#d9d9d9] text-sm"
+          />
+          <button
+            type="submit"
+            className="w-full py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors"
+          >
+            ログイン
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   function renderNavIcon(icon: NavIcon) {
     return (

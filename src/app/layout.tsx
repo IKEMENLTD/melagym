@@ -33,9 +33,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={`${notoSansJP.variable} ${barlowCondensed.variable} h-full`}>
-      <head>
-        <link rel="preload" href="/images/bg-gym-entrance.webp" as="image" />
-      </head>
       <body className="min-h-full flex flex-col antialiased">{children}</body>
     </html>
   );

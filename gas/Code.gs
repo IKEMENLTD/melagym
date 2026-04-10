@@ -49,6 +49,10 @@ function doPost(e) {
       'getAvailabilityCache': getAvailabilityCache_,
       'upsertAvailabilityCache': upsertAvailabilityCache_,
       'deleteAvailabilityCache': deleteAvailabilityCache_,
+      'getTrainerByEmail': getTrainerByEmail_,
+      'getTrainerBookings': getTrainerBookings_,
+      'getStoreBookings': getStoreBookings_,
+      'getStoreByName': getStoreByName_,
     };
 
     var handler = handlers[action];
@@ -851,6 +855,66 @@ function upsertAvailabilityCache_(params) {
 }
 
 /**
+ * メールアドレスでトレーナーを検索
+ */
+function getTrainerByEmail_(params) {
+  var email = params.email;
+  if (!email) return { trainer: null };
+
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+  var trainer = null;
+  for (var i = 0; i < allTrainers.length; i++) {
+    if (allTrainers[i].email === email) {
+      trainer = allTrainers[i];
+      break;
+    }
+  }
+
+  return { trainer: trainer };
+}
+
+/**
+ * トレーナーIDで予約一覧を取得（顧客名・店舗名付き）
+ */
+function getTrainerBookings_(params) {
+  var trainerId = params.trainer_id;
+  if (!trainerId) return { bookings: [] };
+
+  var allBookings = getAllRows_('bookings').map(parseBooking_);
+  var allCustomers = getAllRows_('customers');
+  var allStores = getAllRows_('stores').map(parseStore_);
+
+  var customerMap = {};
+  allCustomers.forEach(function(c) { customerMap[c.id] = c.name; });
+  var storeMap = {};
+  allStores.forEach(function(s) { storeMap[s.id] = s.name; });
+
+  var trainerBookings = allBookings.filter(function(b) {
+    return b.trainer_id === trainerId && b.status === 'confirmed';
+  });
+
+  // 日付昇順ソート
+  trainerBookings.sort(function(a, b) {
+    return a.scheduled_at.localeCompare(b.scheduled_at);
+  });
+
+  var bookings = trainerBookings.map(function(b) {
+    return {
+      id: b.id,
+      scheduled_at: b.scheduled_at,
+      duration_minutes: b.duration_minutes,
+      status: b.status,
+      booking_type: b.booking_type,
+      customer_name: customerMap[b.customer_id] || '-',
+      store_name: storeMap[b.store_id] || '-',
+      notes: b.notes || '',
+    };
+  });
+
+  return { bookings: bookings };
+}
+
+/**
  * 空き枠キャッシュ削除
  */
 function deleteAvailabilityCache_(params) {
@@ -877,4 +941,80 @@ function deleteAvailabilityCache_(params) {
   }
 
   return { success: true };
+}
+
+// ---------- 店舗管理画面用アクション ----------
+
+/**
+ * 店舗名で店舗を検索
+ */
+function getStoreByName_(params) {
+  var name = params.name;
+  if (!name) return { store: null };
+
+  var rows = getAllRows_('stores');
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].name === name) {
+      return { store: parseStore_(rows[i]) };
+    }
+  }
+  return { store: null };
+}
+
+/**
+ * store_idで予約一覧を取得（トレーナー名・顧客名付き）
+ */
+function getStoreBookings_(params) {
+  var storeId = params.storeId;
+  if (!storeId) return { bookings: [] };
+
+  var allBookings = getAllRows_('bookings').map(parseBooking_);
+  var allCustomers = getAllRows_('customers');
+  var allTrainers = getAllRows_('trainers').map(parseTrainer_);
+
+  // 名前マップ作成
+  var customerMap = {};
+  allCustomers.forEach(function(c) { customerMap[c.id] = c.name; });
+  var trainerMap = {};
+  allTrainers.forEach(function(t) { trainerMap[t.id] = t.name; });
+
+  // この店舗の予約のみフィルタ
+  var storeBookings = allBookings.filter(function(b) {
+    return b.store_id === storeId;
+  });
+
+  // 日付フィルタ
+  if (params.date) {
+    storeBookings = storeBookings.filter(function(b) {
+      return b.scheduled_at && b.scheduled_at.indexOf(params.date) === 0;
+    });
+  }
+
+  // ステータスフィルタ
+  if (params.status) {
+    storeBookings = storeBookings.filter(function(b) {
+      return b.status === params.status;
+    });
+  }
+
+  // 日付降順ソート
+  storeBookings.sort(function(a, b) {
+    return b.scheduled_at.localeCompare(a.scheduled_at);
+  });
+
+  var bookings = storeBookings.map(function(b) {
+    return {
+      id: b.id,
+      customer_name: customerMap[b.customer_id] || '-',
+      trainer_name: trainerMap[b.trainer_id] || '-',
+      scheduled_at: b.scheduled_at,
+      duration_minutes: b.duration_minutes,
+      booking_type: b.booking_type,
+      status: b.status,
+      notes: b.notes,
+      created_at: b.created_at,
+    };
+  });
+
+  return { bookings: bookings };
 }

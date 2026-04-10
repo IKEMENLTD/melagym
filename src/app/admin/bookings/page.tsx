@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface BookingItem {
   id: string;
@@ -36,7 +37,7 @@ export default function BookingsPage() {
   const loadBookings = useCallback((targetPage: number) => {
     setLoading(true);
     setError(null);
-    fetch(`/api/admin/bookings?limit=${PAGE_SIZE}&page=${targetPage}`)
+    adminFetch(`/api/admin/bookings?limit=${PAGE_SIZE}&page=${targetPage}`)
       .then((r) => {
         if (!r.ok) throw new Error('予約情報の取得に失敗しました');
         return r.json();
