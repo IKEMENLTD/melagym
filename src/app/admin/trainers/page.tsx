@@ -191,10 +191,23 @@ export default function TrainersPage() {
   const firstVisitCount = trainers.filter((t) => t.is_first_visit_eligible && t.is_active).length;
 
   function copyUrl(url: string, label: string) {
-    navigator.clipboard.writeText(url).then(() => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(label);
+        setTimeout(() => setCopied(null), 2000);
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
       setCopied(label);
       setTimeout(() => setCopied(null), 2000);
-    });
+    }
   }
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -343,7 +356,7 @@ export default function TrainersPage() {
                     <span className="flex-1 select-all text-[10px] break-all min-w-0">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
                     <button
                       type="button"
-                      onClick={() => { navigator.clipboard.writeText('melagym@instagram-generator-472905.iam.gserviceaccount.com'); }}
+                      onClick={() => copyUrl('melagym@instagram-generator-472905.iam.gserviceaccount.com', 'sa')}
                       className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
                     >コピー</button>
                   </div>

@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -93,6 +94,26 @@ export default function AdminDashboard() {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
+  function copyText(text: string, key: string) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopiedPath(key);
+        setTimeout(() => setCopiedPath(null), 2000);
+      });
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedPath(key);
+      setTimeout(() => setCopiedPath(null), 2000);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-black">ダッシュボード</h1>
@@ -109,10 +130,10 @@ export default function AdminDashboard() {
             <div key={item.path} className="flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg min-w-0">
               <span className="text-[#606060] truncate flex-1 min-w-0">{item.label}: {baseUrl}{item.path}</span>
               <button
-                onClick={() => navigator.clipboard.writeText(`${baseUrl}${item.path}`)}
+                onClick={() => copyText(`${baseUrl}${item.path}`, item.path)}
                 className="text-[#ff5000] font-bold whitespace-nowrap hover:underline"
               >
-                コピー
+                {copiedPath === item.path ? 'OK!' : 'コピー'}
               </button>
             </div>
           ))}

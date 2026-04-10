@@ -29,6 +29,7 @@ export default function StoresPage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [togglingStoreId, setTogglingStoreId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [saCopied, setSaCopied] = useState(false);
 
   const loadStores = useCallback(() => {
     setLoading(true);
@@ -186,10 +187,33 @@ export default function StoresPage() {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
+  function fallbackCopy(text: string, onDone: () => void) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(onDone);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      onDone();
+    }
+  }
+
   function copyStoreUrl() {
-    navigator.clipboard.writeText(`${baseUrl}/store`).then(() => {
+    fallbackCopy(`${baseUrl}/store`, () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function copySaEmail() {
+    fallbackCopy('melagym@instagram-generator-472905.iam.gserviceaccount.com', () => {
+      setSaCopied(true);
+      setTimeout(() => setSaCopied(false), 2000);
     });
   }
 
@@ -303,9 +327,9 @@ export default function StoresPage() {
                     <span className="flex-1 select-all text-[10px] break-all min-w-0">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
                     <button
                       type="button"
-                      onClick={() => { navigator.clipboard.writeText('melagym@instagram-generator-472905.iam.gserviceaccount.com'); }}
+                      onClick={copySaEmail}
                       className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
-                    >コピー</button>
+                    >{saCopied ? 'OK!' : 'コピー'}</button>
                   </div>
                   <p>権限:「予定の表示（すべての予定の詳細）」</p>
                 </div>
