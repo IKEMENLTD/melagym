@@ -362,7 +362,7 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white mela-bg-gym">
+    <div className="min-h-screen bg-white">
       {/* ヘッダー */}
       <header className="bg-white border-b border-[#d9d9d9] sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3">
@@ -403,9 +403,8 @@ export default function BookingPage() {
           />
           <ProgressBar currentStep={step} totalSteps={steps.length} />
         </div>
+        <MarqueeBanner />
       </header>
-
-      <MarqueeBanner />
 
       {/* メインコンテンツ */}
       <main className="max-w-lg mx-auto px-4 py-6">
