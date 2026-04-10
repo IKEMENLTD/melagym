@@ -145,6 +145,76 @@ export default function StoreDashboard() {
   const calendarLinked = data.store.has_calendar_linked;
   const calendarStatus = calendarLinked ? '連携済み' : '未設定';
 
+  // カレンダー未連携 → セットアップガイドを強制表示
+  if (!calendarLinked) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-[#fff5f0] border-2 border-[#ff5000] rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-black">Googleカレンダー連携が必要です</h2>
+              <p className="text-sm text-[#606060]">予約を受けるにはカレンダーの連携設定が必須です</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg space-y-3 mb-4">
+            <p className="text-sm font-bold text-black">連携手順:</p>
+            <div className="space-y-2 text-sm text-[#4d4d4d]">
+              <div className="flex gap-3">
+                <span className="w-6 h-6 bg-[#ff5000] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                <p>Googleカレンダーで店舗用カレンダーを開く</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-6 h-6 bg-[#ff5000] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                <p>カレンダー名の「︙」→「設定と共有」</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-6 h-6 bg-[#ff5000] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+                <div>
+                  <p>「特定のユーザーとの共有」に以下を追加:</p>
+                  <div className="flex items-center gap-1 bg-[#f0f0f0] border border-[#d9d9d9] px-2 py-1.5 mt-1 rounded">
+                    <span className="flex-1 text-xs break-all select-all">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const text = 'melagym@instagram-generator-472905.iam.gserviceaccount.com';
+                        if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text); }
+                        else { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+                      }}
+                      className="text-[#ff5000] font-bold text-xs whitespace-nowrap flex-shrink-0"
+                    >コピー</button>
+                  </div>
+                  <p className="mt-1 text-xs text-[#606060]">権限:「予定の表示（空き時間情報のみ）」</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-6 h-6 bg-[#ff5000] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+                <p>「カレンダーの統合」→「カレンダーID」をコピー</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="w-6 h-6 bg-[#ff5000] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">5</span>
+                <p>管理者にカレンダーIDを共有してください</p>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/store/calendar"
+            className="block w-full py-3 bg-[#ff5000] text-white font-bold rounded-full text-center hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+          >
+            カレンダー設定画面を開く
+          </Link>
+        </div>
+        <HelpGuide steps={storeDashboardGuide} pageTitle="店舗ダッシュボード" />
+      </div>
+    );
+  }
+
   const statCards: {
     label: string;
     value: string | number;
