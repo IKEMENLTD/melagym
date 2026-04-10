@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { storeFetch } from '@/lib/store-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { storeDashboardGuide } from '@/lib/guide-data';
 
 interface StoreDetail {
   id: string;
@@ -231,6 +233,7 @@ export default function StoreDashboard() {
           )}
         </div>
       </div>
+      <HelpGuide steps={storeDashboardGuide} pageTitle="店舗ダッシュボード" />
     </div>
   );
 }

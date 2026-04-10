@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { trainerFetch } from '@/lib/trainer-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { trainerScheduleGuide } from '@/lib/guide-data';
 import {
   startOfWeek,
   endOfWeek,
@@ -238,6 +240,8 @@ export default function TrainerSchedule() {
           );
         })}
       </div>
+
+      <HelpGuide steps={trainerScheduleGuide} pageTitle="スケジュール" />
     </div>
   );
 }

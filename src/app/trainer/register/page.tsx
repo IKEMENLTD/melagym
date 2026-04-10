@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { trainerRegisterGuide } from '@/lib/guide-data';
 
 export default function TrainerRegisterPage() {
   const [form, setForm] = useState({
@@ -172,6 +174,8 @@ export default function TrainerRegisterPage() {
           </Link>
         </div>
       </form>
+
+      <HelpGuide steps={trainerRegisterGuide} pageTitle="トレーナー新規登録" />
     </div>
   );
 }

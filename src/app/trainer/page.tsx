@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { trainerFetch, getTrainerSession } from '@/lib/trainer-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { trainerDashboardGuide } from '@/lib/guide-data';
 
 interface TrainerBooking {
   id: string;
@@ -236,6 +238,8 @@ export default function TrainerDashboard() {
           </div>
         </div>
       )}
+
+      <HelpGuide steps={trainerDashboardGuide} pageTitle="マイページ" />
     </div>
   );
 }

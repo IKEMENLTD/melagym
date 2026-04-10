@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Store } from '@/types/database';
 import { adminFetch } from '@/lib/admin-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { adminStoresGuide } from '@/lib/guide-data';
 
 interface EditStoreForm {
   name: string;
@@ -287,6 +289,7 @@ export default function StoresPage() {
           </div>
         )}
       </div>
+      <HelpGuide steps={adminStoresGuide} pageTitle="店舗管理" />
     </div>
   );
 }

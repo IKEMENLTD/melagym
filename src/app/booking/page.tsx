@@ -10,6 +10,8 @@ import { StoreSelector } from '@/components/booking/store-selector';
 import { TrainerSelector } from '@/components/booking/trainer-selector';
 import { CustomerForm, type CustomerFormData } from '@/components/booking/customer-form';
 import type { Store, Trainer, TimeSlot, BookingResponse } from '@/types/database';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { bookingGuide } from '@/lib/guide-data';
 
 type BookingType = 'first_visit' | 'regular';
 
@@ -417,6 +419,8 @@ export default function BookingPage() {
           </div>
         </div>
       )}
+
+      <HelpGuide steps={bookingGuide} pageTitle="予約の流れ" />
     </div>
   );
 }

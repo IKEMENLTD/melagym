@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { adminFetch } from '@/lib/admin-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { adminDashboardGuide } from '@/lib/guide-data';
 
 interface DashboardStats {
   todayBookings: number;
@@ -153,6 +155,8 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      <HelpGuide steps={adminDashboardGuide} pageTitle="ダッシュボード" />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { adminFetch } from '@/lib/admin-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { adminBookingsGuide } from '@/lib/guide-data';
 
 interface BookingItem {
   id: string;
@@ -251,6 +253,7 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+      <HelpGuide steps={adminBookingsGuide} pageTitle="予約一覧" />
     </div>
   );
 }

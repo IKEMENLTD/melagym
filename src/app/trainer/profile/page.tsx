@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { trainerFetch } from '@/lib/trainer-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { trainerProfileGuide } from '@/lib/guide-data';
 
 interface TrainerProfileData {
   id: string;
@@ -311,6 +313,8 @@ export default function TrainerProfile() {
           )}
         </button>
       </form>
+
+      <HelpGuide steps={trainerProfileGuide} pageTitle="プロフィール編集" />
     </div>
   );
 }

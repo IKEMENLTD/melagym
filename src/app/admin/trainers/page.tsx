@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Trainer, Store } from '@/types/database';
 import { adminFetch } from '@/lib/admin-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { adminTrainersGuide } from '@/lib/guide-data';
 
 interface TrainerWithStores extends Trainer {
   stores: { store_id: string; store_name: string }[];
@@ -442,6 +444,8 @@ export default function TrainersPage() {
           </table>
         </div>
       </div>
+
+      <HelpGuide steps={adminTrainersGuide} pageTitle="トレーナー管理" />
     </div>
   );
 }

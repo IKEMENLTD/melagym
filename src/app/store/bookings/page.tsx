@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { storeFetch } from '@/lib/store-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { storeBookingsGuide } from '@/lib/guide-data';
 
 interface StoreBooking {
   id: string;
@@ -215,6 +217,7 @@ export default function StoreBookingsPage() {
           </div>
         </div>
       )}
+      <HelpGuide steps={storeBookingsGuide} pageTitle="予約一覧" />
     </div>
   );
 }

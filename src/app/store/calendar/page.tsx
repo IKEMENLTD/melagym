@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { storeFetch } from '@/lib/store-fetch';
+import { HelpGuide } from '@/components/ui/help-guide';
+import { storeCalendarGuide } from '@/lib/guide-data';
 
 interface BusinessHoursEntry {
   open: string;
@@ -253,6 +255,7 @@ export default function CalendarSettingsPage() {
           {saving ? '保存中...' : '営業時間を保存'}
         </button>
       </div>
+      <HelpGuide steps={storeCalendarGuide} pageTitle="カレンダー設定" />
     </div>
   );
 }
