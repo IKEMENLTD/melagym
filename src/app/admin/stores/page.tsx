@@ -331,7 +331,7 @@ export default function StoresPage() {
                       className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
                     >{saCopied ? 'OK!' : 'コピー'}</button>
                   </div>
-                  <p>権限:「予定の表示（すべての予定の詳細）」</p>
+                  <p>権限:「予定の表示（空き時間情報のみ）」</p>
                 </div>
               </div>
 
