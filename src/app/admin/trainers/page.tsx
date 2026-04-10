@@ -41,6 +41,8 @@ export default function TrainersPage() {
   const [form, setForm] = useState<AddTrainerForm>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -67,8 +69,6 @@ export default function TrainersPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   async function toggleFirstVisit(trainerId: string, currentValue: boolean) {
     setTogglingIds((prev) => new Set(prev).add(`fv-${trainerId}`));
@@ -189,7 +189,6 @@ export default function TrainersPage() {
   }
 
   const firstVisitCount = trainers.filter((t) => t.is_first_visit_eligible && t.is_active).length;
-  const [copied, setCopied] = useState<string | null>(null);
 
   function copyUrl(url: string, label: string) {
     navigator.clipboard.writeText(url).then(() => {

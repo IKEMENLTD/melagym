@@ -27,6 +27,8 @@ export default function StoresPage() {
   const [addForm, setAddForm] = useState<StoreForm>({ name: '', area: '', address: '', google_calendar_id: '' });
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [togglingStoreId, setTogglingStoreId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const loadStores = useCallback(() => {
     setLoading(true);
@@ -139,8 +141,6 @@ export default function StoresPage() {
     }
   }
 
-  const [togglingStoreId, setTogglingStoreId] = useState<string | null>(null);
-
   async function toggleStoreActive(store: Store) {
     setTogglingStoreId(store.id);
     try {
@@ -180,7 +180,6 @@ export default function StoresPage() {
     );
   }
 
-  const [copied, setCopied] = useState(false);
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   function copyStoreUrl() {
