@@ -4,7 +4,12 @@
  * GASのウェブアプリは302リダイレクトを返す。
  * リダイレクト先はPOSTを受け付けない（405 Method Not Allowed）。
  * そのため、GETリクエストのクエリパラメータでデータを送信する。
- * データが大きい場合はbase64エンコードして送る。
+ *
+ * セキュリティ注意:
+ * - APIキーはGETクエリパラメータに含まれる（GAS制約により不可避）
+ * - HTTPS通信のため経路上では暗号化される
+ * - サーバーサイド専用モジュールのため、ブラウザには露出しない
+ * - サーバーログには残る可能性がある（GAS側のログ設定に注意）
  */
 
 const GAS_API_URL = process.env.NEXT_PUBLIC_GAS_API_URL ?? '';
@@ -33,7 +38,8 @@ export async function callGAS<T = Record<string, unknown>>(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000);
+  // タイムアウト: 30秒（GASの応答は通常5-15秒以内）
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   const payload = JSON.stringify({ action, params, apiKey: GAS_API_KEY });
 

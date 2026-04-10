@@ -1,34 +1,59 @@
 /**
  * 管理画面用のfetchラッパー
- * Cookie に admin_token を自動付与する
+ * HttpOnly cookie で認証を管理する（XSS対策）
+ * トークンはJavaScriptから直接アクセスできない
  */
 
-const ADMIN_TOKEN_KEY = 'admin_token';
-
-export function getAdminToken(): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${ADMIN_TOKEN_KEY}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-export function setAdminToken(token: string): void {
-  const secure = location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${ADMIN_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax${secure}`;
-}
-
-export function clearAdminToken(): void {
-  document.cookie = `${ADMIN_TOKEN_KEY}=; path=/; max-age=0`;
-}
-
-export function isLoggedIn(): boolean {
-  return !!getAdminToken();
-}
-
-export async function adminFetch(url: string, options?: RequestInit): Promise<Response> {
-  const token = getAdminToken();
-  const headers = new Headers(options?.headers);
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+/**
+ * サーバー側でセッション状態を確認する
+ * HttpOnly cookieは自動送信されるため、JSから直接読む必要がない
+ */
+export async function checkAdminSession(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/admin/session', { credentials: 'same-origin' });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.authenticated === true;
+  } catch {
+    return false;
   }
-  return fetch(url, { ...options, headers });
+}
+
+/**
+ * ログイン: サーバーがHttpOnly cookieを設定する
+ */
+export async function adminLogin(token: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    return data;
+  } catch {
+    return { success: false, error: 'ログイン処理に失敗しました' };
+  }
+}
+
+/**
+ * ログアウト: サーバーがHttpOnly cookieを削除する
+ */
+export async function adminLogout(): Promise<void> {
+  await fetch('/api/admin/logout', {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+}
+
+/**
+ * 認証付きfetchラッパー
+ * HttpOnly cookieは credentials: 'same-origin' で自動送信される
+ */
+export async function adminFetch(url: string, options?: RequestInit): Promise<Response> {
+  return fetch(url, {
+    ...options,
+    credentials: 'same-origin',
+  });
 }

@@ -5,6 +5,7 @@ import { getAvailability, getAvailabilityForStore } from '@/lib/availability';
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 // 照会可能な未来日数の上限（90日先まで）
 const MAX_FUTURE_DAYS = 90;
+const JST_OFFSET = '+09:00';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 日付の妥当性チェック（実在する日付か）
-  const parsedDate = new Date(`${date}T00:00:00+09:00`);
+  const parsedDate = new Date(`${date}T00:00:00${JST_OFFSET}`);
   if (isNaN(parsedDate.getTime())) {
     return NextResponse.json({ error: '無効な日付です' }, { status: 400 });
   }

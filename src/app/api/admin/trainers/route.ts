@@ -4,6 +4,8 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { stripDangerousKeys } from '@/lib/validation';
 import type { Trainer } from '@/types/database';
 
+const VALID_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+
 // 更新可能なカラムをホワイトリストで制限
 const ALLOWED_UPDATE_FIELDS = new Set([
   'name',
@@ -69,16 +71,60 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const result = await callGAS<{ success: boolean }>('updateTrainer', { id, updates });
+    const result = await callGAS<{
+      success: boolean;
+      deactivated?: boolean;
+      futureBookingsCount?: number;
+      warning?: string;
+    }>('updateTrainer', { id, updates });
 
     if (!result.success) {
       return NextResponse.json({ error: '更新に失敗しました' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    const response: Record<string, unknown> = { success: true };
+    if (result.deactivated && result.futureBookingsCount && result.futureBookingsCount > 0) {
+      response.warning = `このトレーナーには未来の確定予約が${result.futureBookingsCount}件あります。手動でキャンセルまたは別トレーナーへの振替をお願いします。`;
+      response.futureBookingsCount = result.futureBookingsCount;
+    }
+    if (result.warning) {
+      response.warning = result.warning;
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Failed to update trainer:', error);
     return NextResponse.json({ error: '更新に失敗しました' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = verifyAdminAuth(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  const id = request.nextUrl.searchParams.get('id');
+  if (!id || !VALID_ID_PATTERN.test(id)) {
+    return NextResponse.json({ error: 'IDの形式が不正です' }, { status: 400 });
+  }
+
+  try {
+    const result = await callGAS<{
+      success: boolean;
+      error?: string;
+      futureBookingsCount?: number;
+      deletedTrainer?: { id: string; name: string };
+    }>('deleteTrainer', { id });
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || '削除に失敗しました' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, deletedTrainer: result.deletedTrainer });
+  } catch (error) {
+    console.error('Failed to delete trainer:', error);
+    return NextResponse.json({ error: 'トレーナーの削除に失敗しました' }, { status: 500 });
   }
 }
 

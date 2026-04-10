@@ -88,6 +88,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const defaultPasscode = process.env.STORE_DEFAULT_PASSCODE;
     const expectedPasscode = storePasscode ?? defaultPasscode;
 
+    // 本番環境ではパスコードを必須とする
+    if (!expectedPasscode && process.env.NODE_ENV === 'production') {
+      console.warn(`[SECURITY] Store "${sanitizedName}" has no passcode configured`);
+      return NextResponse.json(
+        { error: 'この店舗はパスコードが未設定のためログインできません。管理者にお問い合わせください。' },
+        { status: 403 }
+      );
+    }
+
     if (expectedPasscode) {
       // パスコードが設定されている場合、必ず検証する
       if (!passcode || typeof passcode !== 'string') {
@@ -116,13 +125,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    return NextResponse.json({
+    const isSecure = request.url.startsWith('https');
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30日
+    };
+
+    const response = NextResponse.json({
       store: {
         id: result.store.id,
         name: result.store.name,
         area: result.store.area,
       },
     });
+
+    response.cookies.set('store_id', result.store.id, cookieOptions);
+    response.cookies.set('store_name', result.store.name, cookieOptions);
+
+    return response;
   } catch (error) {
     // セキュリティ: 内部エラーの詳細をクライアントに返さない
     console.error('Store auth error:', error);

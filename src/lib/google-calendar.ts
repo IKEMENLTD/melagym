@@ -5,10 +5,21 @@ let calendarClient: calendar_v3.Calendar | null = null;
 
 function getCalendarClient(): calendar_v3.Calendar {
   if (!calendarClient) {
+    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    // 環境変数の検証: 起動時に明確なエラーを出す
+    if (!clientEmail) {
+      throw new Error('GOOGLE_SERVICE_ACCOUNT_EMAIL 環境変数が設定されていません');
+    }
+    if (!privateKey) {
+      throw new Error('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY 環境変数が設定されていません');
+    }
+
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        client_email: clientEmail,
+        private_key: privateKey,
       },
       scopes: [
         'https://www.googleapis.com/auth/calendar.readonly',
@@ -21,7 +32,12 @@ function getCalendarClient(): calendar_v3.Calendar {
   return calendarClient;
 }
 
-// FreeBusy APIで複数カレンダーの空き状況を一括取得（最大50件バッチ）
+/**
+ * FreeBusy APIで複数カレンダーの空き状況を一括取得（最大50件バッチ）
+ *
+ * 注意: 空のcalendarIdsは空Mapを返す（エラーではない）
+ * 注意: レスポンスに含まれないカレンダーIDはエラーとして扱う
+ */
 export async function getFreeBusy(
   calendarIds: string[],
   timeMin: string,
@@ -50,6 +66,14 @@ export async function getFreeBusy(
       const calendars = response.data.calendars;
       if (calendars) {
         for (const [calId, data] of Object.entries(calendars)) {
+          // Google APIがカレンダーにエラーを返した場合（権限不足等）
+          if (data.errors && data.errors.length > 0) {
+            console.error(`Calendar ${calId} returned errors:`, data.errors);
+            // エラーのあるカレンダーも空配列としてマップに入れる（存在確認用）
+            result.set(calId, []);
+            continue;
+          }
+
           const busy = (data.busy ?? [])
             .filter((b): b is { start: string; end: string } =>
               typeof b.start === 'string' && typeof b.end === 'string'
@@ -58,8 +82,17 @@ export async function getFreeBusy(
           result.set(calId, busy);
         }
       }
+
+      // レスポンスに含まれないカレンダーIDを検出
+      for (const requestedId of batch) {
+        if (!result.has(requestedId)) {
+          console.warn(`Calendar ${requestedId} was not included in FreeBusy response`);
+        }
+      }
     } catch (error) {
-      console.error('Google Calendar FreeBusy API error');
+      // エラー種別を識別してログに残す
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error(`Google Calendar FreeBusy API error: ${errMsg}`);
       throw new Error('カレンダーの空き状況取得に失敗しました');
     }
   }
@@ -67,7 +100,9 @@ export async function getFreeBusy(
   return result;
 }
 
-// Googleカレンダーにイベント書き込み
+/**
+ * Googleカレンダーにイベント書き込み
+ */
 export async function createCalendarEvent(
   calendarId: string,
   summary: string,
@@ -90,14 +125,21 @@ export async function createCalendarEvent(
       },
     });
 
+    if (!response.data.id) {
+      console.error('Calendar event created but no ID returned for calendar:', calendarId);
+    }
+
     return response.data.id ?? null;
   } catch (error) {
-    console.error('Google Calendar event creation error');
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error(`Google Calendar event creation error for ${calendarId}: ${errMsg}`);
     throw new Error('カレンダーイベントの作成に失敗しました');
   }
 }
 
-// Googleカレンダーからイベント削除
+/**
+ * Googleカレンダーからイベント削除
+ */
 export async function deleteCalendarEvent(
   calendarId: string,
   eventId: string
@@ -109,7 +151,8 @@ export async function deleteCalendarEvent(
   try {
     await calendar.events.delete({ calendarId, eventId });
   } catch (error) {
-    console.error('Google Calendar event deletion error');
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error(`Google Calendar event deletion error for ${calendarId}/${eventId}: ${errMsg}`);
     throw new Error('カレンダーイベントの削除に失敗しました');
   }
 }

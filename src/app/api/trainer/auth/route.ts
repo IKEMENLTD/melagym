@@ -4,16 +4,16 @@ import { isValidEmail } from '@/lib/validation';
 import type { Trainer } from '@/types/database';
 
 /**
- * POST: メールアドレスでトレーナーを照合
+ * POST: メールアドレス + パスワードでトレーナーを認証
  *
- * セキュリティ警告: 現在はメールアドレスのみで認証しており、パスワード検証がありません。
- * メールアドレスを知っている第三者がなりすまし可能です。
- * 本番環境ではパスワード認証またはOAuth/マジックリンク認証の導入を強く推奨します。
+ * パスワード未設定のトレーナーはメールのみで認証（段階的移行）
+ * requiresPasswordSetup: true が返った場合、パスワード設定を促す
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const email = body.email;
+    const password = body.password;
 
     if (!email || typeof email !== 'string' || email.trim().length === 0) {
       return NextResponse.json(
@@ -32,26 +32,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await callGAS<{ trainer: Trainer | null }>(
-      'getTrainerByEmail',
-      { email: trimmedEmail }
-    );
+    const result = await callGAS<{
+      success: boolean;
+      error?: string;
+      trainer?: { id: string; name: string; email: string };
+      requiresPasswordSetup?: boolean;
+    }>('authenticateTrainer', {
+      email: trimmedEmail,
+      password: typeof password === 'string' ? password : undefined,
+    });
 
-    // セキュリティ: 存在しない・未承認の両方で同じレスポンスを返す（列挙攻撃防止）
-    if (!result.trainer || !result.trainer.is_active) {
+    if (!result.success || !result.trainer) {
       return NextResponse.json(
-        { error: 'メールアドレスまたはアカウントが無効です。新規登録がまだの方は「新規登録はこちら」からご登録ください。承認待ちの方は管理者の承認をお待ちください。' },
+        { error: result.error ?? 'メールアドレスまたはパスワードが無効です。新規登録がまだの方は「新規登録はこちら」からご登録ください。' },
         { status: 401 }
       );
     }
 
-    return NextResponse.json({
-      trainer: {
-        id: result.trainer.id,
-        name: result.trainer.name,
-        email: result.trainer.email,
-      },
+    const isSecure = request.url.startsWith('https');
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30日
+    };
+
+    const response = NextResponse.json({
+      trainer: result.trainer,
+      requiresPasswordSetup: result.requiresPasswordSetup ?? false,
     });
+
+    response.cookies.set('trainer_id', result.trainer.id, cookieOptions);
+    response.cookies.set('trainer_email', result.trainer.email, cookieOptions);
+
+    return response;
   } catch (error) {
     console.error('Trainer auth error:', error);
     return NextResponse.json(

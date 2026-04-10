@@ -5,6 +5,7 @@ import type { TimeSlot, Store, Trainer, BusinessHours } from '@/types/database';
 
 const SLOT_DURATION_MINUTES = 60; // 1セッション60分
 const CACHE_TTL_MINUTES = 5;
+const JST_OFFSET = '+09:00'; // 日本標準時オフセット
 
 // YYYY-MM-DD 形式バリデーション（事前コンパイル）
 const DATE_FORMAT_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,9 +34,18 @@ export async function getAvailability(
   date: string // YYYY-MM-DD
 ): Promise<TimeSlot[]> {
   // 入力バリデーション
-  if (!trainerId || typeof trainerId !== 'string') return [];
-  if (!storeId || typeof storeId !== 'string') return [];
-  if (!DATE_FORMAT_RE.test(date) || isNaN(parseISO(date).getTime())) return [];
+  if (!trainerId || typeof trainerId !== 'string') {
+    console.warn(`[availability] Invalid trainerId: ${String(trainerId)}`);
+    return [];
+  }
+  if (!storeId || typeof storeId !== 'string') {
+    console.warn(`[availability] Invalid storeId: ${String(storeId)}`);
+    return [];
+  }
+  if (!DATE_FORMAT_RE.test(date) || isNaN(parseISO(date).getTime())) {
+    console.warn(`[availability] Invalid date format: ${date}`);
+    return [];
+  }
 
   // キャッシュチェック
   const cacheRes = await callGAS<GASCacheResponse>('getAvailabilityCache', {
@@ -64,11 +74,14 @@ export async function getAvailability(
   const trainer = tsItem?.trainer ?? null;
   const bufferMinutes = tsItem?.buffer_minutes ?? 0;
 
-  if (!trainer || !store) return [];
+  if (!trainer || !store) {
+    console.warn(`[availability] trainer or store not found: trainerId=${trainerId}, storeId=${storeId}, trainerFound=${!!trainer}, storeFound=${!!store}`);
+    return [];
+  }
 
   // date range (use next day 00:00 as exclusive end to avoid missing last second)
-  const dayStart = `${date}T00:00:00+09:00`;
-  const nextDay = addMinutes(parseISO(`${date}T00:00:00+09:00`), 24 * 60);
+  const dayStart = `${date}T00:00:00${JST_OFFSET}`;
+  const nextDay = addMinutes(parseISO(`${date}T00:00:00${JST_OFFSET}`), 24 * 60);
   const dayEnd = nextDay.toISOString();
 
   // FreeBusy APIで両方の忙しい時間を取得
@@ -94,7 +107,10 @@ export async function getAvailability(
   // 営業時間を取得
   const dayOfWeek = format(parseISO(date), 'EEEE').toLowerCase();
   const hours = (store.business_hours as BusinessHours)[dayOfWeek];
-  if (!hours) return []; // 定休日
+  if (!hours) {
+    console.warn(`[availability] No business hours for ${dayOfWeek} at store ${storeId}`);
+    return []; // 定休日
+  }
 
   // トレーナーの対応可能時間帯
   const trainerStart = trainer.available_hours.start; // "09:00"
@@ -104,11 +120,14 @@ export async function getAvailability(
   const effectiveStart = maxTime(hours.open, trainerStart);
   const effectiveEnd = minTime(hours.close, trainerEnd);
 
-  if (effectiveStart >= effectiveEnd) return [];
+  if (effectiveStart >= effectiveEnd) {
+    console.warn(`[availability] No time overlap: store hours=${hours.open}-${hours.close}, trainer hours=${trainerStart}-${trainerEnd}`);
+    return [];
+  }
 
   // Build slot times using explicit JST offset to avoid server TZ mismatch
-  let cursor = parseISO(`${date}T${effectiveStart}:00+09:00`);
-  const endTime = parseISO(`${date}T${effectiveEnd}:00+09:00`);
+  let cursor = parseISO(`${date}T${effectiveStart}:00${JST_OFFSET}`);
+  const endTime = parseISO(`${date}T${effectiveEnd}:00${JST_OFFSET}`);
 
   const slots: TimeSlot[] = [];
   const now = new Date();
@@ -156,7 +175,10 @@ export async function getAvailabilityForStore(
     { storeId }
   );
 
-  if (!trainerStores) return [];
+  if (!trainerStores || trainerStores.length === 0) {
+    console.warn(`[availability] No trainers assigned to store ${storeId}`);
+    return [];
+  }
 
   const results = await Promise.all(
     trainerStores

@@ -46,6 +46,7 @@ export default function TrainersPage() {
   const [editingTrainer, setEditingTrainer] = useState<TrainerWithStores | null>(null);
   const [editStoreIds, setEditStoreIds] = useState<string[]>([]);
   const [editSaving, setEditSaving] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -202,6 +203,29 @@ export default function TrainersPage() {
       alert('店舗紐付けの更新に失敗しました');
     } finally {
       setEditSaving(false);
+    }
+  }
+
+  async function deleteTrainer(trainerId: string, trainerName: string) {
+    const confirmed = window.confirm(`「${trainerName}」を削除してもよろしいですか？この操作は取り消せません。`);
+    if (!confirmed) return;
+
+    setDeletingIds((prev) => new Set(prev).add(trainerId));
+    try {
+      const res = await adminFetch(`/api/admin/trainers?id=${encodeURIComponent(trainerId)}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        alert(result.error || '削除に失敗しました');
+        return;
+      }
+      setTrainers((prev) => prev.filter((t) => t.id !== trainerId));
+      setEditingTrainer(null);
+    } catch {
+      alert('通信エラーが発生しました');
+    } finally {
+      setDeletingIds((prev) => { const s = new Set(prev); s.delete(trainerId); return s; });
     }
   }
 
@@ -484,6 +508,7 @@ export default function TrainersPage() {
                 <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden md:table-cell">カレンダー</th>
                 <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">初回対応</th>
                 <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">稼働</th>
+                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0f0f0]">
@@ -554,11 +579,20 @@ export default function TrainersPage() {
                       </button>
                     )}
                   </td>
+                  <td className="px-3 md:px-6 py-3 text-center">
+                    <button
+                      onClick={() => deleteTrainer(trainer.id, trainer.name)}
+                      disabled={deletingIds.has(trainer.id)}
+                      className="px-3 py-1.5 text-xs font-medium text-[#ef4444] border border-[#ef4444] hover:bg-[#fef2f2] disabled:opacity-50 transition-colors"
+                    >
+                      {deletingIds.has(trainer.id) ? '削除中...' : '削除'}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {trainers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 md:px-6 py-8 text-center text-[#606060]">
+                  <td colSpan={7} className="px-3 md:px-6 py-8 text-center text-[#606060]">
                     トレーナーが登録されていません
                   </td>
                 </tr>
@@ -611,6 +645,19 @@ export default function TrainersPage() {
                   className="flex-1 py-2.5 text-sm font-bold text-white bg-[#ff5000] rounded-full hover:bg-[#e64800] disabled:opacity-50"
                 >
                   {editSaving ? '保存中...' : '保存する'}
+                </button>
+              </div>
+              <div className="pt-4 border-t border-[#d9d9d9]">
+                <button
+                  onClick={() => {
+                    if (editingTrainer) {
+                      deleteTrainer(editingTrainer.id, editingTrainer.name);
+                    }
+                  }}
+                  disabled={editingTrainer ? deletingIds.has(editingTrainer.id) : false}
+                  className="w-full py-2.5 text-sm font-medium text-[#ef4444] border border-[#ef4444] hover:bg-[#fef2f2] disabled:opacity-50 transition-colors"
+                >
+                  {editingTrainer && deletingIds.has(editingTrainer.id) ? '削除中...' : 'このトレーナーを削除'}
                 </button>
               </div>
             </div>

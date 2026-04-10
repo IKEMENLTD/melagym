@@ -28,6 +28,7 @@ export default function StoresPage() {
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [togglingStoreId, setTogglingStoreId] = useState<string | null>(null);
+  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [saCopied, setSaCopied] = useState(false);
 
@@ -162,6 +163,28 @@ export default function StoresPage() {
       alert('稼働状況の更新に失敗しました');
     } finally {
       setTogglingStoreId(null);
+    }
+  }
+
+  async function handleDeleteStore(store: Store) {
+    if (!window.confirm(`「${store.name}」を削除しますか？\nこの操作は取り消せません。`)) {
+      return;
+    }
+    setDeletingStoreId(store.id);
+    try {
+      const res = await adminFetch(`/api/admin/stores?id=${encodeURIComponent(store.id)}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.error || '削除に失敗しました');
+        return;
+      }
+      setStores((prev) => prev.filter((s) => s.id !== store.id));
+    } catch {
+      alert('通信エラーが発生しました');
+    } finally {
+      setDeletingStoreId(null);
     }
   }
 
@@ -508,6 +531,15 @@ export default function StoresPage() {
                 {togglingStoreId === store.id ? (
                   <span className="flex items-center justify-center gap-1"><span className="mela-spinner-sm" /></span>
                 ) : store.is_active ? '停止する' : '稼働する'}
+              </button>
+              <button
+                onClick={() => handleDeleteStore(store)}
+                disabled={deletingStoreId === store.id}
+                className="py-2 px-3 text-sm font-medium text-[#ef4444] bg-[#fef2f2] hover:bg-[#fee2e2] transition-colors disabled:opacity-50"
+              >
+                {deletingStoreId === store.id ? (
+                  <span className="flex items-center justify-center gap-1"><span className="mela-spinner-sm" /></span>
+                ) : '削除'}
               </button>
             </div>
           </div>

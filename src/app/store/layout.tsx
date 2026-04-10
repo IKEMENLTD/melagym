@@ -93,6 +93,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ storeName: selectedStoreName }),
+          credentials: 'same-origin',
         });
         const data = (await res.json()) as {
           store?: { id: string; name: string };

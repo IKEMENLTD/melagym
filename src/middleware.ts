@@ -99,6 +99,26 @@ function isOriginAllowed(request: NextRequest): boolean {
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
+  // --- 0. Admin APIのサーバーサイド認証ガード ---
+  // /api/admin/ 配下は login/session/verify 以外すべてcookie認証必須
+  if (pathname.startsWith('/api/admin/') &&
+      !pathname.startsWith('/api/admin/login') &&
+      !pathname.startsWith('/api/admin/session') &&
+      !pathname.startsWith('/api/admin/verify')) {
+    const adminToken = request.cookies.get('admin_token')?.value;
+    if (!adminToken) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+  }
+
+  // Admin ページはlayout.tsxのクライアント認証で制御（HttpOnly cookie保護済み）
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   // APIルート以外はスルー
   if (!pathname.startsWith('/api/')) {
     return NextResponse.next();
@@ -150,5 +170,5 @@ export function middleware(request: NextRequest): NextResponse {
  * /api/ 配下の全ルートに適用
  */
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/admin/:path*'],
 };

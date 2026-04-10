@@ -30,8 +30,11 @@ export interface TrainerSessionVerifyResult {
 export async function verifyTrainerSession(
   request: NextRequest
 ): Promise<TrainerSessionVerifyResult> {
-  const trainerId = request.headers.get('X-Trainer-Id');
-  const trainerEmail = request.headers.get('X-Trainer-Email');
+  // HttpOnly cookieを優先、フォールバックでヘッダー
+  const trainerId = request.cookies.get('trainer_id')?.value
+    ?? request.headers.get('X-Trainer-Id');
+  const trainerEmail = request.cookies.get('trainer_email')?.value
+    ?? request.headers.get('X-Trainer-Email');
 
   // 両方のヘッダーが必須
   if (!trainerId || !trainerEmail) {

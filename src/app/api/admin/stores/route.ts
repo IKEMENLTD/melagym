@@ -64,6 +64,33 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  const auth = verifyAdminAuth(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ error: '店舗IDは必須です' }, { status: 400 });
+  }
+
+  try {
+    const result = await callGAS<{ success: boolean; error?: string }>('deleteStore', { id });
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || '削除に失敗しました' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete store:', error);
+    return NextResponse.json({ error: '店舗の削除に失敗しました' }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   const auth = verifyAdminAuth(request);
   if (!auth.ok) {

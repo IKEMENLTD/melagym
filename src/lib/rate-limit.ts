@@ -166,6 +166,23 @@ export const RATE_LIMIT_RULES: RateLimitRule[] = [
     method: 'POST',
     config: { maxRequests: 10, windowMs: 60_000 },
   },
+  // 管理者ログイン: ブルートフォース対策 (1分間に5回)
+  {
+    pattern: '/api/admin/login',
+    method: 'POST',
+    config: { maxRequests: 5, windowMs: 60_000 },
+  },
+  // 可用性チェック: DoS対策 (1分間に20回)
+  {
+    pattern: '/api/calendar/availability',
+    config: { maxRequests: 20, windowMs: 60_000 },
+  },
+  // 予約キャンセル: DoS対策 (1分間に5回)
+  {
+    pattern: '/api/booking',
+    method: 'DELETE',
+    config: { maxRequests: 5, windowMs: 60_000 },
+  },
 ];
 
 /** デフォルトルール: その他のAPIエンドポイント (1分間に30回) */

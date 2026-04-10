@@ -59,10 +59,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(result);
     }
 
-    // FreeBusy APIで今日のデータを取得してアクセスできるか確認
-    const now = new Date();
-    const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+    // FreeBusy APIで今日のデータを取得してアクセスできるか確認（JST基準）
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const todayStr = jstNow.toISOString().split('T')[0];
+    const timeMin = `${todayStr}T00:00:00+09:00`;
+    const timeMax = `${todayStr}T23:59:59+09:00`;
 
     try {
       await getFreeBusy([calendarId], timeMin, timeMax);

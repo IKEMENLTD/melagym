@@ -1,10 +1,9 @@
 /**
  * トレーナー画面用のfetchラッパー
- * Cookie に trainer_email / trainer_id / trainer_name を自動付与する
+ * HttpOnly cookie で trainer_id / trainer_email を管理する（XSS対策）
+ * trainer_name は表示用のためlocalStorageに保存
  */
 
-const TRAINER_EMAIL_KEY = 'trainer_email';
-const TRAINER_ID_KEY = 'trainer_id';
 const TRAINER_NAME_KEY = 'trainer_name';
 
 export interface TrainerSession {
@@ -14,47 +13,39 @@ export interface TrainerSession {
 }
 
 export function getTrainerSession(): TrainerSession | null {
-  if (typeof document === 'undefined') return null;
-  const email = getCookieValue(TRAINER_EMAIL_KEY);
-  const id = getCookieValue(TRAINER_ID_KEY);
-  const name = getCookieValue(TRAINER_NAME_KEY);
-  if (!email || !id) return null;
-  return { email, id, name: name ?? '' };
+  if (typeof window === 'undefined') return null;
+  const name = localStorage.getItem(TRAINER_NAME_KEY);
+  // HttpOnly cookieはJSから読めないため、nameの存在でセッション有無を簡易判定
+  // 実際の認証はサーバー側のcookieで行われる
+  if (!name) return null;
+  return { email: '', id: '', name };
 }
 
+/**
+ * ログイン成功後に表示用のトレーナー名を保存
+ * trainer_id, trainer_email はサーバーがHttpOnly cookieに設定済み
+ */
 export function setTrainerSession(session: TrainerSession): void {
-  const maxAge = 60 * 60 * 24 * 30; // 30 days
-  setCookie(TRAINER_EMAIL_KEY, session.email, maxAge);
-  setCookie(TRAINER_ID_KEY, session.id, maxAge);
-  setCookie(TRAINER_NAME_KEY, session.name, maxAge);
+  localStorage.setItem(TRAINER_NAME_KEY, session.name);
 }
 
 export function clearTrainerSession(): void {
-  setCookie(TRAINER_EMAIL_KEY, '', 0);
-  setCookie(TRAINER_ID_KEY, '', 0);
-  setCookie(TRAINER_NAME_KEY, '', 0);
+  localStorage.removeItem(TRAINER_NAME_KEY);
+  // HttpOnly cookieの削除はサーバー側で行う
+  fetch('/api/trainer/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
 }
 
 export function isTrainerLoggedIn(): boolean {
   return !!getTrainerSession();
 }
 
+/**
+ * 認証付きfetchラッパー
+ * HttpOnly cookieは credentials: 'same-origin' で自動送信される
+ */
 export async function trainerFetch(url: string, options?: RequestInit): Promise<Response> {
-  const session = getTrainerSession();
-  const headers = new Headers(options?.headers);
-  if (session) {
-    headers.set('X-Trainer-Email', session.email);
-    headers.set('X-Trainer-Id', session.id);
-  }
-  return fetch(url, { ...options, headers });
-}
-
-function getCookieValue(name: string): string | null {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function setCookie(name: string, value: string, maxAge: number): void {
-  const secure = location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+  return fetch(url, {
+    ...options,
+    credentials: 'same-origin',
+  });
 }

@@ -23,6 +23,9 @@ interface PaginationInfo {
 
 const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
   confirmed: ['completed', 'no_show', 'cancelled'],
+  completed: [],    // 完了は最終状態
+  no_show: ['confirmed'],  // 誤操作復元: no_show → confirmed
+  cancelled: ['confirmed'], // 誤操作復元: cancelled → confirmed
 };
 
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
@@ -34,8 +37,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = request.nextUrl;
-  const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 100);
-  const page = Math.max(parseInt(searchParams.get('page') ?? '1', 10), 1);
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') ?? '50', 10) || 50, 1), 100);
+  const page = Math.max(parseInt(searchParams.get('page') ?? '1', 10) || 1, 1);
 
   try {
     const result = await callGAS<{ bookings: BookingListItem[]; pagination: PaginationInfo }>(

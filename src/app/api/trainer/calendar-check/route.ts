@@ -42,15 +42,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 今日の0:00-23:59(JST)でFreeBusyを検証
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const todayStr = jstNow.toISOString().split('T')[0];
+    const todayStart = `${todayStr}T00:00:00+09:00`;
+    const todayEnd = `${todayStr}T23:59:59+09:00`;
 
     try {
       await getFreeBusy(
         [calendarId],
-        todayStart.toISOString(),
-        todayEnd.toISOString()
+        todayStart,
+        todayEnd
       );
 
       return NextResponse.json({

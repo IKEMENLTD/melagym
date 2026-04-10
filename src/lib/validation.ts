@@ -68,7 +68,7 @@ export function isWithinLength(value: string, maxLength: number): boolean {
 }
 
 /** 予約ステータスの許可値 */
-const VALID_BOOKING_STATUSES = new Set(['confirmed', 'cancelled', 'completed', 'pending']);
+const VALID_BOOKING_STATUSES = new Set(['confirmed', 'cancelled', 'completed', 'pending', 'no_show']);
 
 export function isValidBookingStatus(status: string): boolean {
   return VALID_BOOKING_STATUSES.has(status);

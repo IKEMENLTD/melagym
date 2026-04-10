@@ -7,6 +7,7 @@ interface DaySummary {
   label: string;
   date: Date;
   availableCount: number;
+  hasError: boolean;
 }
 
 interface AvailabilitySummaryProps {
@@ -47,18 +48,21 @@ export function AvailabilitySummary({
         return fetch(
           `/api/calendar/availability?store_id=${storeId}&trainer_id=${tid}&date=${dateStr}`
         )
-          .then((r) => (r.ok ? r.json() : { slots: [] }))
-          .then((data: { slots?: TimeSlot[] }) => {
-            const slots = data.slots ?? [];
-            return slots.filter((s) => s.available).length;
+          .then((r) => {
+            if (!r.ok) return { count: 0, hasError: true };
+            return r.json().then((data: { slots?: TimeSlot[] }) => {
+              const slots = data.slots ?? [];
+              return { count: slots.filter((s) => s.available).length, hasError: false };
+            });
           })
-          .catch(() => 0);
+          .catch(() => ({ count: 0, hasError: true }));
       })
-    ).then((counts) => {
+    ).then((results) => {
       setSummaries(
         days.map((d, i) => ({
           ...d,
-          availableCount: counts[i],
+          availableCount: results[i].count,
+          hasError: results[i].hasError,
         }))
       );
       setLoading(false);
@@ -77,36 +81,48 @@ export function AvailabilitySummary({
 
   if (summaries.length === 0) return null;
 
-  const maxCount = Math.max(...summaries.map((s) => s.availableCount));
+  const validCounts = summaries.filter((s) => !s.hasError).map((s) => s.availableCount);
+  const maxCount = validCounts.length > 0 ? Math.max(...validCounts) : 0;
 
   return (
     <div className="mb-4">
       <p className="text-xs text-[#606060] mb-2">空き状況</p>
       <div className="flex gap-2">
         {summaries.map((summary) => {
-          const isHighlight = summary.availableCount > 0 && summary.availableCount === maxCount;
+          const isDisabled = summary.hasError || summary.availableCount === 0;
+          const isHighlight =
+            !summary.hasError && summary.availableCount > 0 && summary.availableCount === maxCount;
           return (
             <button
               key={summary.label}
               onClick={() => onDateSelect(summary.date)}
               className={`
                 flex-1 py-2 px-3 rounded-lg text-center transition-all
-                ${isHighlight
-                  ? 'bg-[#fff5f0] border-2 border-[#ff5000]'
-                  : 'bg-[#f8f8f8] border border-[#d9d9d9]'}
-                ${summary.availableCount === 0
+                ${summary.hasError
+                  ? 'bg-[#fef2f2] border border-[#ef4444]/40 opacity-50 cursor-not-allowed'
+                  : isHighlight
+                    ? 'bg-[#fff5f0] border-2 border-[#ff5000]'
+                    : 'bg-[#f8f8f8] border border-[#d9d9d9]'}
+                ${!summary.hasError && summary.availableCount === 0
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:border-[#ff5000]/60 active:scale-[0.98]'}
+                  : ''}
+                ${!isDisabled
+                  ? 'hover:border-[#ff5000]/60 active:scale-[0.98]'
+                  : ''}
               `}
-              disabled={summary.availableCount === 0}
+              disabled={isDisabled}
             >
               <span className="block text-[10px] text-[#606060]">{summary.label}</span>
               <span
                 className={`block text-sm font-bold ${
-                  isHighlight ? 'text-[#ff5000]' : 'text-[#4d4d4d]'
+                  summary.hasError
+                    ? 'text-[#ef4444]'
+                    : isHighlight
+                      ? 'text-[#ff5000]'
+                      : 'text-[#4d4d4d]'
                 }`}
               >
-                {summary.availableCount}枠
+                {summary.hasError ? '-' : `${summary.availableCount}枠`}
               </span>
             </button>
           );

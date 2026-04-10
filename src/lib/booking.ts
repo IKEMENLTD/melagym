@@ -79,6 +79,15 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
 
   const busyMap = await getFreeBusy(calendarIds, req.slot_start, slotEnd);
 
+  // FreeBusyレスポンスにリクエストしたカレンダーが含まれているか検証
+  // 含まれていない場合、空き状況が不明なため安全のためブロック
+  for (const cid of calendarIds) {
+    if (!busyMap.has(cid)) {
+      console.error(`FreeBusy response missing calendar: ${cid}`);
+      return { success: false, error: 'カレンダーの空き状況を確認できませんでした。時間をおいて再度お試しください' };
+    }
+  }
+
   const trainerBusy = trainer.google_calendar_id
     ? (busyMap.get(trainer.google_calendar_id) ?? [])
     : [];
@@ -123,10 +132,10 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
           slotEnd,
           `店舗: ${store.name}\n顧客: ${req.customer.name ?? ''}`
         );
-      } catch {
+      } catch (calErr) {
         // トレーナーカレンダーへの書込み失敗は予約自体を失敗させない
-        // （書込み権限がない場合がある）
-        console.error('Failed to write to trainer calendar:', trainer.google_calendar_id);
+        // （書込み権限がない場合がある。予約は成功するが管理者への通知が必要）
+        console.error('Failed to write to trainer calendar:', trainer.google_calendar_id, calErr);
       }
     }
 
@@ -203,9 +212,16 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
           console.error('Failed to rollback trainer calendar event:', trainerEventId);
         }
       }
-      // セキュリティ: GAS内部エラーの詳細をクライアントに返さない
       console.error('Booking creation failed on GAS:', result.error);
-      return { success: false, error: '予約の登録に失敗しました。時間をおいて再度お試しください' };
+      // ダブルブッキングなどユーザーに伝えるべきエラーはそのまま返す
+      const userFacingErrors = ['既に予約済み', '予約を受け付けていません', '見つかりません', '過去の日時'];
+      const isUserError = userFacingErrors.some((msg) => result.error?.includes(msg));
+      return {
+        success: false,
+        error: isUserError
+          ? result.error!
+          : '予約の登録に失敗しました。時間をおいて再度お試しください',
+      };
     }
 
     // キャッシュ無効化
@@ -216,7 +232,16 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
       date,
     });
 
-    return { success: true, booking: result.booking };
+    const warnings: string[] = [];
+    if (trainer.google_calendar_id && !trainerEventId) {
+      warnings.push('トレーナーのカレンダーへの登録に失敗しました。手動で確認してください。');
+    }
+
+    return {
+      success: true,
+      booking: result.booking,
+      ...(warnings.length > 0 && { warnings }),
+    };
   } catch (error) {
     // rollback: clean up calendar events if they were created
     if (storeEventId && store.google_calendar_id) {
@@ -325,7 +350,7 @@ export async function cancelBooking(
     booking?: Booking;
     store_google_calendar_id?: string | null;
     trainer_google_calendar_id?: string | null;
-  }>('cancelBooking', { bookingId, reason });
+  }>('cancelBooking', { bookingId, reason, isAdmin: true });
 
   if (!result.success) {
     // セキュリティ: GAS内部エラーの詳細をクライアントに返さない

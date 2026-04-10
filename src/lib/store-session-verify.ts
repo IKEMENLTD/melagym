@@ -25,14 +25,16 @@ export interface StoreSessionVerifyResult {
 /**
  * リクエストから店舗のセッション情報を検証する
  *
- * 1. X-Store-Id ヘッダーが存在するか
+ * 1. HttpOnly cookie (store_id) またはフォールバックで X-Store-Id ヘッダーが存在するか
  * 2. フォーマットが正しいか
  * 3. GASでその店舗が存在しアクティブか
  */
 export async function verifyStoreSession(
   request: NextRequest
 ): Promise<StoreSessionVerifyResult> {
-  const storeId = request.headers.get('X-Store-Id');
+  // HttpOnly cookieを優先、フォールバックでヘッダー
+  const storeId = request.cookies.get('store_id')?.value
+    ?? request.headers.get('X-Store-Id');
 
   if (!storeId) {
     return {

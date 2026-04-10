@@ -52,6 +52,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
   const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [trainerName, setTrainerName] = useState('');
@@ -77,7 +78,11 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
       const res = await fetch('/api/trainer/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailInput.trim().toLowerCase() }),
+        body: JSON.stringify({
+          email: emailInput.trim().toLowerCase(),
+          password: passwordInput || undefined,
+        }),
+        credentials: 'same-origin',
       });
 
       const data = await res.json();
@@ -133,8 +138,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
           </div>
           <p className="text-center text-sm text-[#606060]">トレーナーログイン</p>
           <p className="text-center text-xs text-[#909090] leading-relaxed">
-            登録済みのメールアドレスを入力してください。<br />
-            パスワードは不要です。
+            登録済みのメールアドレスとパスワードを入力してください。
           </p>
           {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
           <input
@@ -145,6 +149,14 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
             className="w-full px-4 py-3 border border-[#d9d9d9] text-sm rounded-lg"
             required
             autoComplete="email"
+          />
+          <input
+            type="password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            placeholder="パスワードを入力"
+            className="w-full px-4 py-3 border border-[#d9d9d9] text-sm rounded-lg"
+            autoComplete="current-password"
           />
           <button
             type="submit"

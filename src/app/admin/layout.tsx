@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { isLoggedIn, setAdminToken, clearAdminToken } from '@/lib/admin-fetch';
+import { checkAdminSession, adminLogin, adminLogout } from '@/lib/admin-fetch';
 import { MarqueeBanner } from '@/components/ui/marquee-banner';
 
 interface NavIcon {
@@ -57,17 +57,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
   const [authError, setAuthError] = useState(false);
 
-  function handleLogout() {
-    clearAdminToken();
+  async function handleLogout() {
+    await adminLogout();
     setAuthed(false);
     setTokenInput('');
   }
 
   useEffect(() => {
-    setAuthed(isLoggedIn());
+    checkAdminSession().then((ok) => {
+      setAuthed(ok);
+      setLoading(false);
+    });
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
@@ -75,23 +79,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!tokenInput.trim()) return;
     setAuthError(false);
 
-    // サーバー側でトークンを検証してからログイン状態にする
-    try {
-      const res = await fetch('/api/admin/verify', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokenInput.trim()}`,
-        },
-      });
-      if (!res.ok) {
-        setAuthError(true);
-        return;
-      }
-      setAdminToken(tokenInput.trim());
+    const result = await adminLogin(tokenInput.trim());
+    if (result.success) {
       setAuthed(true);
-    } catch {
+    } else {
       setAuthError(true);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center">
+        <p className="text-sm text-[#606060]">読み込み中...</p>
+      </div>
+    );
   }
 
   if (!authed) {

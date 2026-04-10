@@ -135,11 +135,15 @@ export default function BookingPage() {
       const res = await fetch(
         `/api/calendar/availability?store_id=${selectedStoreId}&trainer_id=${trainerId}&date=${dateStr}`
       );
-      if (!res.ok) throw new Error('空き枠の取得に失敗しました');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error ?? `空き枠の取得に失敗しました (${res.status})`);
+      }
       const data = await res.json();
       setSlots(data.slots ?? []);
-    } catch {
-      setApiError('空き枠の取得に失敗しました。もう一度お試しください。');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '空き枠の取得に失敗しました';
+      setApiError(`${msg} もう一度お試しください。`);
       setSlots([]);
     } finally {
       setSlotsLoading(false);
