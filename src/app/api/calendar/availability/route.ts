@@ -38,16 +38,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '無効な日付です' }, { status: 400 });
   }
 
-  // 過去日付・過度に未来の日付を拒否
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const maxDate = new Date(today);
-  maxDate.setDate(maxDate.getDate() + MAX_FUTURE_DAYS);
+  // 過去日付・過度に未来の日付を拒否（JSTベースで文字列比較）
+  const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayStr = nowJST.toISOString().split('T')[0];
+  const maxDateJST = new Date(Date.now() + 9 * 60 * 60 * 1000 + MAX_FUTURE_DAYS * 24 * 60 * 60 * 1000);
+  const maxDateStr = maxDateJST.toISOString().split('T')[0];
 
-  if (parsedDate < today) {
+  if (date < todayStr) {
     return NextResponse.json({ error: '過去の日付は指定できません' }, { status: 400 });
   }
-  if (parsedDate > maxDate) {
+  if (date > maxDateStr) {
     return NextResponse.json(
       { error: `${MAX_FUTURE_DAYS}日以上先の日付は指定できません` },
       { status: 400 }
