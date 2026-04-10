@@ -65,8 +65,13 @@ export default function TrainerRegisterPage() {
             </svg>
           </div>
           <h2 className="text-lg font-bold text-black">登録が完了しました</h2>
-          <p className="text-sm text-[#606060]">
-            管理者が確認後、ログインできるようになります。
+          <p className="text-sm text-[#606060] leading-relaxed">
+            管理者が確認後、ログインできるようになります。<br />
+            承認は通常1営業日以内に行われます。
+          </p>
+          <p className="text-xs text-[#909090] leading-relaxed">
+            ※承認完了の自動通知メールは送信されません。<br />
+            しばらく経ってからログインをお試しください。
           </p>
           <Link
             href="/trainer"

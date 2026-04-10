@@ -131,6 +131,10 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
             <Image src="/images/mela-logo-dark.svg" alt="mela gym" width={140} height={79} />
           </div>
           <p className="text-center text-sm text-[#606060]">トレーナーログイン</p>
+          <p className="text-center text-xs text-[#909090] leading-relaxed">
+            登録済みのメールアドレスを入力してください。<br />
+            パスワードは不要です。
+          </p>
           {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
           <input
             type="email"

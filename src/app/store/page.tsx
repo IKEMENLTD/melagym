@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { storeFetch } from '@/lib/store-fetch';
 import { HelpGuide } from '@/components/ui/help-guide';
 import { storeDashboardGuide } from '@/lib/guide-data';
@@ -144,24 +145,37 @@ export default function StoreDashboard() {
     ? '連携済み'
     : '未設定';
 
-  const statCards = [
+  const statCards: {
+    label: string;
+    value: string | number;
+    bg: string;
+    text: string;
+    href?: string;
+    subtitle?: string;
+  }[] = [
     {
       label: '本日の予約',
       value: data.todayCount,
       bg: 'bg-[#fff5f0]',
       text: 'text-[#ff5000]',
+      href: `/store/bookings?date=${getToday()}`,
+      subtitle: '詳細を見る',
     },
     {
       label: '今週の予約',
       value: data.weekCount,
       bg: 'bg-[#f0fdf4]',
       text: 'text-[#22c55e]',
+      href: '/store/bookings',
+      subtitle: '予約一覧へ',
     },
     {
       label: 'Googleカレンダー',
       value: calendarStatus,
       bg: data.store.google_calendar_id ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]',
       text: data.store.google_calendar_id ? 'text-[#22c55e]' : 'text-[#ef4444]',
+      href: '/store/calendar',
+      subtitle: data.store.google_calendar_id ? '設定を確認' : '設定する',
     },
     {
       label: '対応トレーナー',
@@ -177,16 +191,34 @@ export default function StoreDashboard() {
 
       {/* 統計カード */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statCards.map((card) => (
-          <div key={card.label} className={`${card.bg} p-4 rounded-lg`}>
-            <p className={`text-xs font-medium ${card.text} opacity-70`}>
-              {card.label}
-            </p>
-            <p className={`text-2xl font-bold mt-1 ${card.text}`}>
-              {card.value}
-            </p>
-          </div>
-        ))}
+        {statCards.map((card) => {
+          const content = (
+            <>
+              <p className={`text-xs font-medium ${card.text} opacity-70`}>
+                {card.label}
+              </p>
+              <p className={`text-2xl font-bold mt-1 ${card.text}`}>
+                {card.value}
+              </p>
+              {card.subtitle && (
+                <p className="text-[10px] text-[#999] mt-1">{card.subtitle}</p>
+              )}
+            </>
+          );
+          return card.href ? (
+            <Link
+              key={card.label}
+              href={card.href}
+              className={`${card.bg} p-4 rounded-lg block hover:opacity-80 transition-opacity`}
+            >
+              {content}
+            </Link>
+          ) : (
+            <div key={card.label} className={`${card.bg} p-4 rounded-lg`}>
+              {content}
+            </div>
+          );
+        })}
       </div>
 
       {/* 対応トレーナー一覧 */}

@@ -41,14 +41,14 @@ export async function POST(request: NextRequest) {
     // （ここではUXを優先して区別しているが、攻撃者によるアカウント列挙に注意）
     if (!result.trainer) {
       return NextResponse.json(
-        { error: '登録されていないメールアドレスです' },
+        { error: '登録されていないメールアドレスです。新規登録がまだの方は「新規登録はこちら」からご登録ください。' },
         { status: 404 }
       );
     }
 
     if (!result.trainer.is_active) {
       return NextResponse.json(
-        { error: 'このアカウントは無効です' },
+        { error: 'このアカウントはまだ承認されていません。管理者の承認をお待ちください。' },
         { status: 403 }
       );
     }

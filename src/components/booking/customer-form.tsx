@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface CustomerFormProps {
   onSubmit: (data: CustomerFormData) => void;
@@ -16,12 +16,21 @@ export interface CustomerFormData {
 
 const AGE_GROUPS = ['10代', '20代', '30代', '40代', '50代', '60代以上'];
 
+/** 電話番号入力時にハイフンを自動挿入する (090-1234-5678 形式) */
+function formatPhoneNumber(value: string): string {
+  const digits = value.replace(/[^\d]/g, '');
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+}
+
 export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -41,7 +50,21 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
       newErrors.email = '正しいメールアドレスを入力してください';
     }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // エラーがある場合、最初のエラー箇所にフォーカスを移動
+    const errorKeys = Object.keys(newErrors);
+    if (errorKeys.length > 0 && formRef.current) {
+      const fieldMap: Record<string, string> = {
+        name: 'customer-name',
+        phone: 'customer-phone',
+        email: 'customer-email',
+      };
+      const targetId = fieldMap[errorKeys[0]];
+      if (targetId) {
+        const el = formRef.current.querySelector<HTMLInputElement>(`#${targetId}`);
+        el?.focus();
+      }
+    }
+    return errorKeys.length === 0;
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -51,7 +74,7 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-lg font-bold text-black">お客様情報</h2>
 
       {/* 名前 */}
@@ -84,7 +107,7 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
           id="customer-phone"
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
           placeholder="090-1234-5678"
           autoComplete="tel"
           inputMode="tel"

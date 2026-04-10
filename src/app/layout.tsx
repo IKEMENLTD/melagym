@@ -15,8 +15,28 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "mela gym - 予約システム",
-  description: "メラジム パーソナルトレーニング予約",
+  title: {
+    default: 'mela gym - 予約システム',
+    template: '%s | mela gym',
+  },
+  description: 'メラジム パーソナルトレーニング予約。完全個室のパーソナルトレーニングジム。無料体験セッション受付中。',
+  icons: {
+    icon: '/images/favicon.png',
+    apple: '/images/favicon.png',
+  },
+  openGraph: {
+    title: 'mela gym - パーソナルトレーニング予約',
+    description: '完全個室のパーソナルトレーニングジム。無料体験セッション受付中。',
+    images: [{ url: '/images/ogp.png', width: 1200, height: 630 }],
+    type: 'website',
+    locale: 'ja_JP',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'mela gym - パーソナルトレーニング予約',
+    description: '完全個室のパーソナルトレーニングジム。無料体験セッション受付中。',
+    images: ['/images/ogp.png'],
+  },
 };
 
 export const viewport: Viewport = {

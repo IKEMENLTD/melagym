@@ -176,3 +176,32 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 2px var(--mela-primary);
   border-color: var(--mela-primary) !important;
 }
+
+/* Parallax background - desktop only (iOS Safari does not support backgroundAttachment: fixed) */
+.parallax-section {
+  background-attachment: scroll;
+}
+
+@supports (background-attachment: fixed) {
+  @media (hover: hover) and (pointer: fine) {
+    .parallax-section {
+      background-attachment: fixed;
+    }
+  }
+}
+
+/* Slide-up animation for bottom sheets */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}

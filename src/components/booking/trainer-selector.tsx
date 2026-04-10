@@ -44,9 +44,14 @@ export function TrainerSelector({
     return (
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-black">トレーナーを選択</h2>
-        <p className="text-center text-[#606060] py-12">
-          この店舗で利用可能なトレーナーがいません
-        </p>
+        <div className="text-center py-12 space-y-3">
+          <p className="text-[#606060]">
+            この店舗で利用可能なトレーナーがいません
+          </p>
+          <p className="text-sm text-[#606060]">
+            別の店舗を選択するか、LINEにてお問い合わせください。
+          </p>
+        </div>
       </div>
     );
   }

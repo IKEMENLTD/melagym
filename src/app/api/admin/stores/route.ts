@@ -27,6 +27,42 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  const auth = verifyAdminAuth(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
+  }
+
+  if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
+    return NextResponse.json({ error: '店舗名は必須です' }, { status: 400 });
+  }
+  if (!body.area || typeof body.area !== 'string' || body.area.trim().length === 0) {
+    return NextResponse.json({ error: 'エリアは必須です' }, { status: 400 });
+  }
+
+  try {
+    const result = await callGAS<{ success: boolean; id: string }>('addStore', {
+      name: (body.name as string).trim(),
+      area: (body.area as string).trim(),
+      address: typeof body.address === 'string' ? body.address.trim() : '',
+      google_calendar_id: typeof body.google_calendar_id === 'string' ? body.google_calendar_id.trim() || null : null,
+      business_hours: body.business_hours ?? {},
+    });
+
+    return NextResponse.json({ success: true, id: result.id });
+  } catch (error) {
+    console.error('Failed to add store:', error);
+    return NextResponse.json({ error: '店舗の登録に失敗しました' }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   const auth = verifyAdminAuth(request);
   if (!auth.ok) {

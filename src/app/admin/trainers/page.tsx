@@ -315,7 +315,11 @@ export default function TrainersPage() {
                     </label>
                   ))}
                   {stores.length === 0 && (
-                    <p className="text-sm text-[#606060]">店舗が登録されていません</p>
+                    <p className="text-sm text-[#606060]">
+                      店舗が登録されていません。先に
+                      <a href="/admin/stores" className="text-[#ff5000] font-medium hover:underline">店舗管理</a>
+                      から店舗を追加してください。
+                    </p>
                   )}
                 </div>
               </div>

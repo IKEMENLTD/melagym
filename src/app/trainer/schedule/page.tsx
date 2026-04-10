@@ -24,6 +24,7 @@ interface TrainerBooking {
   status: string;
   booking_type: string;
   customer_name: string;
+  customer_phone: string;
   store_name: string;
   notes: string;
 }
@@ -32,6 +33,7 @@ export default function TrainerSchedule() {
   const [bookings, setBookings] = useState<TrainerBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -210,25 +212,68 @@ export default function TrainerSchedule() {
                           booking.duration_minutes * 60 * 1000
                       );
                       const endTime = format(endDate, 'HH:mm');
+                      const isExpanded = expandedBookingId === booking.id;
 
                       return (
                         <div
                           key={booking.id}
-                          className="flex items-center gap-3 p-2 rounded hover:bg-[#f0f0f0] transition-colors"
+                          className="rounded hover:bg-[#f0f0f0] transition-colors cursor-pointer"
+                          onClick={() => setExpandedBookingId(isExpanded ? null : booking.id)}
                         >
-                          <div className="min-w-[90px] text-sm font-bold text-[#000000]">
-                            {startTime} - {endTime}
+                          <div className="flex items-center gap-3 p-2">
+                            <div className="min-w-[90px] text-sm font-bold text-[#000000]">
+                              {startTime} - {endTime}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-[#000000] truncate font-medium">
+                                {booking.customer_name}
+                              </p>
+                              <p className="text-xs text-[#606060]">{booking.store_name}</p>
+                            </div>
+                            {booking.booking_type === 'first_visit' && (
+                              <span className="px-2 py-0.5 text-xs bg-[#fff5f0] text-[#ff5000] rounded-full font-bold shrink-0">
+                                初回
+                              </span>
+                            )}
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#909090"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className={`shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-[#000000] truncate font-medium">
-                              {booking.customer_name}
-                            </p>
-                            <p className="text-xs text-[#606060]">{booking.store_name}</p>
-                          </div>
-                          {booking.booking_type === 'first_visit' && (
-                            <span className="px-2 py-0.5 text-xs bg-[#fff5f0] text-[#ff5000] rounded-full font-bold shrink-0">
-                              初回
-                            </span>
+                          {isExpanded && (
+                            <div className="px-2 pb-2 space-y-1 border-t border-[#f0f0f0] pt-2 ml-[calc(90px+12px)]">
+                              {booking.customer_phone && (
+                                <div className="flex items-center gap-2 text-xs text-[#4d4d4d]">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                                  </svg>
+                                  <a
+                                    href={`tel:${booking.customer_phone}`}
+                                    className="text-[#ff5000] hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {booking.customer_phone}
+                                  </a>
+                                </div>
+                              )}
+                              <p className="text-xs text-[#606060]">
+                                {booking.duration_minutes}分 / {booking.store_name}
+                              </p>
+                              {booking.notes && (
+                                <div className="text-xs text-[#606060] bg-[#f8f8f8] p-1.5 rounded">
+                                  <span className="font-bold">メモ: </span>{booking.notes}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       );

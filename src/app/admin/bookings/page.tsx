@@ -31,7 +31,7 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'confirmed' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<'all' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -89,6 +89,32 @@ export default function BookingsPage() {
     }
   }
 
+  async function handleStatusChange(bookingId: string, newStatus: string, currentStatus: string) {
+    const statusLabelsMap: Record<string, string> = {
+      completed: '完了',
+      no_show: '無断欠席',
+    };
+    const label = statusLabelsMap[newStatus] ?? newStatus;
+    if (!confirm(`この予約を「${label}」に変更しますか？`)) return;
+    try {
+      const res = await adminFetch('/api/admin/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bookingId, status: newStatus, current_status: currentStatus }),
+      });
+      if (!res.ok) {
+        const result = await res.json();
+        alert(result.error || 'ステータスの更新に失敗しました');
+        return;
+      }
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
+      );
+    } catch {
+      alert('ステータスの更新に失敗しました');
+    }
+  }
+
   const statusLabels: Record<string, { label: string; className: string }> = {
     confirmed: { label: '確定', className: 'bg-[#f0fdf4] text-[#22c55e]' },
     cancelled: { label: 'キャンセル', className: 'bg-[#fef2f2] text-[#ef4444]' },
@@ -139,17 +165,26 @@ export default function BookingsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-4 py-2.5 border border-[#d9d9d9] text-sm"
         />
-        <div className="flex gap-2">
-          {(['all', 'confirmed', 'cancelled'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2.5 text-sm font-bold rounded-full transition-all
-                ${filter === f ? 'bg-[#ff5000] text-black' : 'bg-[#f0f0f0] text-[#4d4d4d] hover:bg-[#d9d9d9]'}`}
-            >
-              {f === 'all' ? '全て' : f === 'confirmed' ? '確定' : 'キャンセル'}
-            </button>
-          ))}
+        <div className="flex gap-2 flex-wrap">
+          {(['all', 'confirmed', 'completed', 'cancelled', 'no_show'] as const).map((f) => {
+            const labels: Record<string, string> = {
+              all: '全て',
+              confirmed: '確定',
+              completed: '完了',
+              cancelled: 'キャンセル',
+              no_show: '無断欠席',
+            };
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2.5 text-sm font-bold rounded-full transition-all
+                  ${filter === f ? 'bg-[#ff5000] text-black' : 'bg-[#f0f0f0] text-[#4d4d4d] hover:bg-[#d9d9d9]'}`}
+              >
+                {labels[f]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -190,12 +225,26 @@ export default function BookingsPage() {
                   </td>
                   <td className="px-6 py-3">
                     {booking.status === 'confirmed' && (
-                      <button
-                        onClick={() => handleCancel(booking.id)}
-                        className="text-xs text-[#ef4444] hover:text-[#dc2626] font-medium"
-                      >
-                        キャンセル
-                      </button>
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => handleStatusChange(booking.id, 'completed', booking.status)}
+                          className="text-xs text-[#22c55e] hover:text-[#16a34a] font-medium"
+                        >
+                          完了
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(booking.id, 'no_show', booking.status)}
+                          className="text-xs text-[#ff5000] hover:text-[#e64800] font-medium"
+                        >
+                          欠席
+                        </button>
+                        <button
+                          onClick={() => handleCancel(booking.id)}
+                          className="text-xs text-[#ef4444] hover:text-[#dc2626] font-medium"
+                        >
+                          取消
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

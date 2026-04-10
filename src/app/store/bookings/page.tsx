@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { storeFetch } from '@/lib/store-fetch';
@@ -35,10 +36,13 @@ function getToday(): string {
 }
 
 export default function StoreBookingsPage() {
+  const searchParams = useSearchParams();
+  const initialDate = searchParams.get('date') ?? '';
+
   const [bookings, setBookings] = useState<StoreBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(initialDate);
   const [statusFilter, setStatusFilter] = useState('');
 
   const fetchBookings = useCallback(async (date?: string, status?: string) => {
@@ -67,8 +71,8 @@ export default function StoreBookingsPage() {
   }, []);
 
   useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
+    fetchBookings(initialDate || undefined);
+  }, [fetchBookings, initialDate]);
 
   const handleFilterApply = useCallback(() => {
     fetchBookings(dateFilter || undefined, statusFilter || undefined);
@@ -79,6 +83,15 @@ export default function StoreBookingsPage() {
     setStatusFilter('');
     fetchBookings();
   }, [fetchBookings]);
+
+  const handleTodayFilter = useCallback(() => {
+    const today = getToday();
+    setDateFilter(today);
+    setStatusFilter('');
+    fetchBookings(today);
+  }, [fetchBookings]);
+
+  const hasActiveFilter = dateFilter !== '' || statusFilter !== '';
 
   return (
     <div className="space-y-6">
@@ -112,7 +125,17 @@ export default function StoreBookingsPage() {
               <option value="no_show">無断欠席</option>
             </select>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handleTodayFilter}
+              className={`px-4 py-2 text-sm font-bold rounded-full transition-colors ${
+                dateFilter === getToday()
+                  ? 'bg-[#ff5000] text-black shadow-[0_4px_20px_rgba(255,80,0,0.4)]'
+                  : 'bg-[#fff5f0] text-[#ff5000] hover:bg-[#ffe8db]'
+              }`}
+            >
+              今日
+            </button>
             <button
               onClick={handleFilterApply}
               className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
@@ -206,9 +229,21 @@ export default function StoreBookingsPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 py-8 text-center text-[#606060]"
+                      className="px-6 py-12 text-center"
                     >
-                      予約データがありません
+                      <p className="text-[#606060] font-medium">
+                        {hasActiveFilter
+                          ? '条件に一致する予約がありません'
+                          : '予約データがありません'}
+                      </p>
+                      {hasActiveFilter && (
+                        <button
+                          onClick={handleFilterReset}
+                          className="mt-3 text-sm text-[#ff5000] hover:underline"
+                        >
+                          フィルターをリセット
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}

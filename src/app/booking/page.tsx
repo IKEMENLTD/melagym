@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -28,6 +29,8 @@ export default function BookingPage() {
   const [trainersLoading, setTrainersLoading] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [selectedTrainerId, setSelectedTrainerId] = useState<string | null>(null);
+  const [previousTrainerId, setPreviousTrainerId] = useState<string | null>(null);
+  const [previousStoreId, setPreviousStoreId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -44,20 +47,49 @@ export default function BookingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const type = params.get('type');
-    if (type === 'regular') setBookingType('regular');
+    const isRegular = type === 'regular';
+    if (isRegular) setBookingType('regular');
 
     const uid = params.get('line_uid');
     if (uid) setLineUid(uid);
 
+    // 店舗一覧を取得し、リピーターの場合は前回予約情報も並行で取得
     setStoresLoading(true);
-    fetch('/api/stores')
+
+    const storesPromise = fetch('/api/stores')
       .then((r) => {
         if (!r.ok) throw new Error('店舗情報の取得に失敗しました');
         return r.json();
-      })
-      .then((data) => {
-        setStores(data.stores ?? []);
+      });
+
+    const lastBookingPromise = (isRegular && uid)
+      ? fetch(`/api/customer/last-booking?line_uid=${encodeURIComponent(uid)}`)
+          .then((r) => r.ok ? r.json() : null)
+          .catch(() => null)
+      : Promise.resolve(null);
+
+    Promise.all([storesPromise, lastBookingPromise])
+      .then(([storesData, lastBooking]: [
+        { stores?: Store[] },
+        { store_id: string | null; trainer_id: string | null } | null
+      ]) => {
+        const storesList = storesData.stores ?? [];
+        setStores(storesList);
         setApiError(null);
+
+        // リピーター: 前回の店舗をデフォルト選択 + バッジ表示用に保持
+        if (isRegular && lastBooking?.store_id) {
+          setPreviousStoreId(lastBooking.store_id);
+          const storeExists = storesList.some((s) => s.id === lastBooking.store_id);
+          if (storeExists) {
+            setSelectedStoreId(lastBooking.store_id);
+          }
+        }
+
+        // 前回のトレーナーIDを保持
+        if (lastBooking?.trainer_id) {
+          setPreviousTrainerId(lastBooking.trainer_id);
+        }
       })
       .catch(() => {
         setApiError('店舗情報の取得に失敗しました。ページを再読み込みしてください。');
@@ -221,7 +253,13 @@ export default function BookingPage() {
                 予約確認の通知をお送りします。
               </p>
               {bookingResult.booking && (
-                <div className="bg-[#f0f0f0] p-4 rounded-lg text-left text-sm space-y-2">
+                <div className="bg-[#f0f0f0] p-4 rounded-lg text-left text-sm space-y-2 mb-6">
+                  <div className="flex justify-between">
+                    <span className="text-[#606060]">予約番号</span>
+                    <span className="font-medium font-mono text-xs">
+                      {bookingResult.booking.id.slice(0, 8).toUpperCase()}
+                    </span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-[#606060]">日時</span>
                     <span className="font-medium">
@@ -237,11 +275,41 @@ export default function BookingPage() {
                   <div className="flex justify-between">
                     <span className="text-[#606060]">トレーナー</span>
                     <span className="font-medium">
-                      {selectedTrainerName}
+                      {selectedTrainerId === 'auto'
+                        ? `おまかせ${bookingResult.booking.trainer_id ? ` (${trainers.find((t) => t.id === bookingResult.booking!.trainer_id)?.name ?? '担当決定後にお知らせ'})` : ''}`
+                        : selectedTrainerName}
                     </span>
                   </div>
                 </div>
               )}
+              <div className="space-y-3">
+                <a
+                  href="https://line.me/R/ti/p/@melagym"
+                  className="block w-full py-3 bg-[#06C755] text-white font-bold text-center min-h-[48px] rounded-full hover:opacity-90 transition-opacity tracking-wider leading-[24px]"
+                >
+                  LINEに戻る
+                </a>
+                <button
+                  onClick={() => {
+                    setBookingResult(null);
+                    setStep(0);
+                    setSelectedStoreId(null);
+                    setSelectedTrainerId(null);
+                    setSelectedSlot(null);
+                    setSelectedDate(null);
+                    setSlots([]);
+                  }}
+                  className="w-full py-3 bg-[#f0f0f0] text-[#4d4d4d] font-medium min-h-[48px] rounded-full hover:bg-[#d9d9d9] transition-all"
+                >
+                  別の予約をする
+                </button>
+                <Link
+                  href="/"
+                  className="block w-full py-2 text-[#606060] text-sm text-center hover:text-[#4d4d4d] transition-colors"
+                >
+                  トップページに戻る
+                </Link>
+              </div>
             </>
           ) : (
             <>
@@ -253,16 +321,24 @@ export default function BookingPage() {
               </div>
               <h1 className="text-xl font-bold text-black mb-2">予約できませんでした</h1>
               <p className="text-[#606060] text-sm mb-6">{bookingResult.error ?? '予約処理中にエラーが発生しました'}</p>
-              <button
-                onClick={() => {
-                  setBookingResult(null);
-                  setStep(2);
-                  setSelectedSlot(null);
-                }}
-                className="w-full py-3 bg-[#ff5000] text-black font-bold min-h-[48px] rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider"
-              >
-                別の時間を選ぶ
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setBookingResult(null);
+                    setStep(2);
+                    setSelectedSlot(null);
+                  }}
+                  className="w-full py-3 bg-[#ff5000] text-black font-bold min-h-[48px] rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider"
+                >
+                  別の時間を選ぶ
+                </button>
+                <Link
+                  href="/"
+                  className="block w-full py-2 text-[#606060] text-sm text-center hover:text-[#4d4d4d] transition-colors"
+                >
+                  トップページに戻る
+                </Link>
+              </div>
             </>
           )}
         </div>
@@ -290,19 +366,26 @@ export default function BookingPage() {
                 </svg>
               </button>
             )}
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/images/mela-logo-dark.svg"
-                alt="mela gym"
+                alt="mela gym - トップに戻る"
                 width={100}
                 height={56}
               />
-              <h1 className="text-base font-bold text-black">
+              <span className="text-base font-bold text-black">
                 {bookingType === 'first_visit' ? '体験予約' : '予約'}
-              </h1>
-            </div>
+              </span>
+            </Link>
           </div>
-          <StepIndicator steps={steps} currentStep={step} />
+          <StepIndicator
+            steps={steps}
+            currentStep={step}
+            onStepClick={(targetStep) => {
+              setApiError(null);
+              setStep(targetStep);
+            }}
+          />
         </div>
       </header>
 
@@ -320,6 +403,7 @@ export default function BookingPage() {
           <StoreSelector
             stores={stores}
             selectedStoreId={selectedStoreId}
+            previousStoreId={bookingType === 'regular' ? previousStoreId : null}
             onSelect={handleStoreSelect}
             loading={storesLoading}
           />
@@ -330,6 +414,7 @@ export default function BookingPage() {
           <TrainerSelector
             trainers={trainers}
             selectedTrainerId={selectedTrainerId}
+            previousTrainerId={bookingType === 'regular' ? previousTrainerId : null}
             onSelect={handleTrainerSelect}
             showAutoOption={true}
             loading={trainersLoading}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore, startOfDay } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import type { TimeSlot } from '@/types/database';
@@ -23,9 +23,19 @@ export function SlotCalendar({
   loading,
 }: SlotCalendarProps) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const autoSelectedRef = useRef(false);
   const today = new Date();
   const weekStart = addDays(startOfWeek(today, { weekStartsOn: 1 }), weekOffset * 7);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // 初回表示時に今日の日付を自動選択
+  useEffect(() => {
+    if (!selectedDate && !autoSelectedRef.current) {
+      autoSelectedRef.current = true;
+      onDateSelect(new Date());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const daySlots = selectedDate
     ? slots.filter((s) => isSameDay(new Date(s.start), selectedDate))
@@ -38,7 +48,7 @@ export function SlotCalendar({
         <button
           onClick={() => setWeekOffset((p) => Math.max(0, p - 1))}
           disabled={weekOffset === 0}
-          className="p-2 disabled:opacity-30 active:bg-[#f0f0f0]"
+          className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-30 active:bg-[#f0f0f0]"
           aria-label="前の週"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -51,7 +61,7 @@ export function SlotCalendar({
         <button
           onClick={() => setWeekOffset((p) => Math.min(3, p + 1))}
           disabled={weekOffset >= 3}
-          className="p-2 disabled:opacity-30 active:bg-[#f0f0f0]"
+          className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-30 active:bg-[#f0f0f0]"
           aria-label="次の週"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -103,9 +113,14 @@ export function SlotCalendar({
               <p className="text-sm text-[#606060]">読み込み中...</p>
             </div>
           ) : daySlots.length === 0 ? (
-            <p className="text-center text-[#606060] py-8">
-              この日は空き枠がありません
-            </p>
+            <div className="text-center py-8 space-y-2">
+              <p className="text-[#606060]">
+                この日は空き枠がありません
+              </p>
+              <p className="text-xs text-[#909090]">
+                別の日付を選択してください
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {daySlots.map((slot) => {

@@ -138,6 +138,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <div className="flex justify-center py-4">
               <div className="mela-spinner-sm" />
             </div>
+          ) : storeOptions.length === 0 ? (
+            <p className="text-sm text-[#606060] text-center py-4">
+              利用可能な店舗がありません。管理者にお問い合わせください。
+            </p>
           ) : (
             <select
               value={selectedStoreName}
@@ -152,6 +156,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               ))}
             </select>
           )}
+
+          <p className="text-xs text-[#999] text-center leading-relaxed">
+            店舗スタッフ専用画面です。店舗名を選択してログインしてください。
+          </p>
 
           <button
             type="submit"
@@ -258,7 +266,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-[#4d4d4d] hover:text-black"
-              aria-label="メニューを開く"
+              aria-label={mobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'}
             >
               <svg
                 width="20"

@@ -9,6 +9,7 @@ interface TrainerBooking {
   status: string;
   booking_type: string;
   customer_name: string;
+  customer_phone: string;
   store_name: string;
   notes: string;
 }

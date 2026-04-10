@@ -3,9 +3,10 @@
 interface StepIndicatorProps {
   steps: string[];
   currentStep: number;
+  onStepClick?: (step: number) => void;
 }
 
-export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
+export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicatorProps) {
   return (
     <nav aria-label="予約ステップ">
       <ol className="flex items-center justify-center gap-2 py-4 list-none m-0 p-0">
@@ -15,10 +16,15 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
           const stepStatus = isCompleted ? '完了' : isActive ? '現在' : '未完了';
           return (
             <li key={label} className="flex items-center gap-2">
-              <div className="flex flex-col items-center">
+              <button
+                type="button"
+                className={`flex flex-col items-center ${isCompleted && onStepClick ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={() => isCompleted && onStepClick?.(i)}
+                disabled={!isCompleted}
+                aria-label={`ステップ${i + 1}: ${label} (${stepStatus})${isCompleted ? ' - タップで戻る' : ''}`}
+                aria-current={isActive ? 'step' : undefined}
+              >
                 <div
-                  aria-label={`ステップ${i + 1}: ${label} (${stepStatus})`}
-                  aria-current={isActive ? 'step' : undefined}
                   className={`
                     w-8 h-8 flex items-center justify-center text-sm font-bold
                     transition-colors duration-200
@@ -42,7 +48,7 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                 >
                   {label}
                 </span>
-              </div>
+              </button>
               {i < steps.length - 1 && (
                 <div
                   className={`w-8 h-0.5 mb-5 ${

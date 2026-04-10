@@ -6,12 +6,14 @@ import { adminFetch } from '@/lib/admin-fetch';
 import { HelpGuide } from '@/components/ui/help-guide';
 import { adminStoresGuide } from '@/lib/guide-data';
 
-interface EditStoreForm {
+interface StoreForm {
   name: string;
   area: string;
   address: string;
   google_calendar_id: string;
 }
+
+type EditStoreForm = StoreForm;
 
 export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -21,6 +23,10 @@ export default function StoresPage() {
   const [editForm, setEditForm] = useState<EditStoreForm>({ name: '', area: '', address: '', google_calendar_id: '' });
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState<StoreForm>({ name: '', area: '', address: '', google_calendar_id: '' });
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const loadStores = useCallback(() => {
     setLoading(true);
@@ -93,6 +99,46 @@ export default function StoresPage() {
     }
   }
 
+  async function handleAddStore(e: React.FormEvent) {
+    e.preventDefault();
+    setAddError(null);
+
+    if (!addForm.name.trim()) {
+      setAddError('店舗名は必須です');
+      return;
+    }
+    if (!addForm.area.trim()) {
+      setAddError('エリアは必須です');
+      return;
+    }
+
+    setAddSubmitting(true);
+    try {
+      const res = await adminFetch('/api/admin/stores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: addForm.name.trim(),
+          area: addForm.area.trim(),
+          address: addForm.address.trim(),
+          google_calendar_id: addForm.google_calendar_id.trim() || null,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setAddError(result.error || '登録に失敗しました');
+        return;
+      }
+      setShowAddForm(false);
+      setAddForm({ name: '', area: '', address: '', google_calendar_id: '' });
+      loadStores();
+    } catch {
+      setAddError('通信エラーが発生しました');
+    } finally {
+      setAddSubmitting(false);
+    }
+  }
+
   async function toggleStoreActive(store: Store) {
     try {
       const res = await adminFetch('/api/admin/stores', {
@@ -136,7 +182,107 @@ export default function StoresPage() {
           <h1 className="text-2xl font-bold text-black">店舗管理</h1>
           <p className="text-sm text-[#606060] mt-1">{stores.length}店舗</p>
         </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="px-4 py-2.5 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
+        >
+          + 店舗追加
+        </button>
       </div>
+
+      {/* 店舗追加モーダル */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
+              <h2 className="font-bold text-black text-lg">店舗追加</h2>
+              <button
+                onClick={() => { setShowAddForm(false); setAddForm({ name: '', area: '', address: '', google_calendar_id: '' }); setAddError(null); }}
+                className="text-[#606060] hover:text-black text-xl leading-none"
+              >
+                x
+              </button>
+            </div>
+            <form onSubmit={handleAddStore} className="p-6 space-y-4">
+              {addError && (
+                <div className="bg-[#fef2f2] text-[#ef4444] text-sm px-4 py-3">
+                  {addError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                  店舗名 <span className="text-[#ef4444]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={addForm.name}
+                  onChange={(e) => setAddForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                  placeholder="mela gym 渋谷店"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                  エリア <span className="text-[#ef4444]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={addForm.area}
+                  onChange={(e) => setAddForm((p) => ({ ...p, area: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                  placeholder="渋谷"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">住所</label>
+                <input
+                  type="text"
+                  value={addForm.address}
+                  onChange={(e) => setAddForm((p) => ({ ...p, address: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                  placeholder="東京都渋谷区..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">Google Calendar ID</label>
+                <input
+                  type="text"
+                  value={addForm.google_calendar_id}
+                  onChange={(e) => setAddForm((p) => ({ ...p, google_calendar_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                  placeholder="example@group.calendar.google.com"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddForm(false); setAddForm({ name: '', area: '', address: '', google_calendar_id: '' }); setAddError(null); }}
+                  className="flex-1 py-2.5 text-sm font-medium text-[#4d4d4d] bg-[#f0f0f0] rounded-full hover:bg-[#d9d9d9] transition-all"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={addSubmitting}
+                  className="flex-1 py-2.5 text-sm font-bold text-black bg-[#ff5000] rounded-full hover:bg-[#e64800] hover:scale-[1.02] disabled:opacity-50 transition-all"
+                >
+                  {addSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="mela-spinner-sm" />
+                      登録中...
+                    </span>
+                  ) : '登録する'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 編集モーダル */}
       {editingStore && (

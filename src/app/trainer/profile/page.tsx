@@ -297,6 +297,48 @@ export default function TrainerProfile() {
           </div>
         </div>
 
+        {/* お客様からの見え方プレビュー */}
+        <div className="bg-white p-4 rounded-lg border border-[#d9d9d9] space-y-3">
+          <h2 className="text-sm font-bold text-[#000000]">お客様からの見え方</h2>
+          <p className="text-xs text-[#909090]">予約画面でお客様にはこのように表示されます</p>
+          <div className="border border-[#e5e5e5] rounded-lg p-4 bg-[#fafafa]">
+            <div className="flex items-start gap-4">
+              {photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoUrl}
+                  alt="プレビュー"
+                  className="w-16 h-16 rounded-full object-cover border border-[#d9d9d9] shrink-0"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-[#e5e5e5] flex items-center justify-center shrink-0">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#909090" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-[#000000]">{name || '(名前未設定)'}</p>
+                {specialties && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {specialties.split(',').map((s) => s.trim()).filter(Boolean).map((s, i) => (
+                      <span key={i} className="px-2 py-0.5 text-xs bg-[#f0f0f0] text-[#4d4d4d] rounded-full">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {bio && (
+                  <p className="text-xs text-[#606060] mt-2 line-clamp-3">{bio}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 保存ボタン */}
         <button
           type="submit"

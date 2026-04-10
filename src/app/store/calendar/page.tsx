@@ -167,13 +167,24 @@ export default function CalendarSettingsPage() {
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#ef4444]" />
-            <span className="text-sm text-[#606060]">
-              未設定（管理者にお問い合わせください）
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#ef4444]" />
+              <span className="text-sm text-[#606060]">
+                未設定（管理者にお問い合わせください）
+              </span>
+            </div>
           </div>
         )}
+        <div className="mt-4 p-3 bg-[#f8f8f8] border border-[#e5e5e5] rounded text-xs text-[#606060] leading-relaxed">
+          <p className="font-medium text-[#4d4d4d] mb-1">GoogleカレンダーIDの確認方法</p>
+          <ol className="list-decimal list-inside space-y-1">
+            <li>Googleカレンダーを開き、左メニューの対象カレンダー名の右にある「...」をクリック</li>
+            <li>「設定と共有」を選択</li>
+            <li>「カレンダーの統合」セクションにある「カレンダーID」をコピー</li>
+          </ol>
+          <p className="mt-1">形式例: xxxx@group.calendar.google.com</p>
+        </div>
       </div>
 
       {/* 営業時間設定 */}
