@@ -113,6 +113,7 @@ function doPost(e) {
       'getStats': getStats_,
       'updateTrainer': updateTrainer_,
       'addTrainer': addTrainer_,
+      'updateTrainerStores': updateTrainerStores_,
       'addStore': addStore_,
       'updateStore': updateStore_,
       'getCustomerByLineUid': getCustomerByLineUid_,
@@ -775,6 +776,41 @@ function updateTrainer_(params) {
 
   var success = updateRowById_('trainers', id, updates);
   return { success: success };
+}
+
+/**
+ * トレーナーの対応店舗を更新（全削除→再挿入）
+ */
+function updateTrainerStores_(params) {
+  var trainerId = params.trainerId;
+  var storeIds = params.storeIds || [];
+
+  if (!trainerId) return { success: false, error: 'trainerId is required' };
+
+  // 既存の紐付けを全削除
+  var sheet = getSheet_('trainer_stores');
+  if (sheet) {
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var trainerIdCol = headers.indexOf('trainer_id');
+    // 下から削除（行番号がずれないように）
+    for (var i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][trainerIdCol]) === String(trainerId)) {
+        sheet.deleteRow(i + 1);
+      }
+    }
+  }
+
+  // 新しい紐付けを挿入
+  for (var j = 0; j < storeIds.length; j++) {
+    appendRow_('trainer_stores', {
+      trainer_id: trainerId,
+      store_id: storeIds[j],
+      buffer_minutes: 30
+    });
+  }
+
+  return { success: true };
 }
 
 /**

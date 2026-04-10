@@ -95,6 +95,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
   }
 
+  // 店舗紐付け更新のサブアクション
+  if (body.action === 'updateStores') {
+    if (!body.trainerId || typeof body.trainerId !== 'string') {
+      return NextResponse.json({ error: 'trainerId is required' }, { status: 400 });
+    }
+    try {
+      const result = await callGAS<{ success: boolean }>('updateTrainerStores', {
+        trainerId: body.trainerId,
+        storeIds: Array.isArray(body.storeIds) ? body.storeIds : [],
+      });
+      return NextResponse.json(result);
+    } catch (error) {
+      console.error('Failed to update trainer stores:', error);
+      return NextResponse.json({ error: '店舗紐付けの更新に失敗しました' }, { status: 500 });
+    }
+  }
+
   // 必須項目チェック
   if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
     return NextResponse.json({ error: '名前は必須です' }, { status: 400 });

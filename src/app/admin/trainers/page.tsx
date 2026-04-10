@@ -43,6 +43,9 @@ export default function TrainersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
+  const [editingTrainer, setEditingTrainer] = useState<TrainerWithStores | null>(null);
+  const [editStoreIds, setEditStoreIds] = useState<string[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -166,6 +169,40 @@ export default function TrainersPage() {
         ? prev.store_ids.filter((id) => id !== storeId)
         : [...prev.store_ids, storeId],
     }));
+  }
+
+  function openEditStores(trainer: TrainerWithStores) {
+    setEditingTrainer(trainer);
+    setEditStoreIds(trainer.stores?.map((s) => s.store_id) ?? []);
+  }
+
+  function toggleEditStore(storeId: string) {
+    setEditStoreIds((prev) =>
+      prev.includes(storeId) ? prev.filter((id) => id !== storeId) : [...prev, storeId]
+    );
+  }
+
+  async function saveTrainerStores() {
+    if (!editingTrainer) return;
+    setEditSaving(true);
+    try {
+      const res = await adminFetch('/api/admin/trainers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateStores',
+          trainerId: editingTrainer.id,
+          storeIds: editStoreIds,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setEditingTrainer(null);
+      loadData();
+    } catch {
+      alert('店舗紐付けの更新に失敗しました');
+    } finally {
+      setEditSaving(false);
+    }
   }
 
   if (loading) {
@@ -453,15 +490,18 @@ export default function TrainersPage() {
               {trainers.map((trainer) => (
                 <tr key={trainer.id} className={`hover:bg-[#f0f0f0] ${!trainer.is_active ? 'opacity-50' : ''}`}>
                   <td className="px-3 md:px-6 py-3">
-                    <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => openEditStores(trainer)}
+                      className="flex items-center gap-3 text-left hover:opacity-70 transition-opacity"
+                    >
                       <div className="w-8 h-8 bg-[#f0f0f0] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#606060]">
                         {trainer.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-black">{trainer.name}</p>
+                        <p className="font-medium text-[#ff5000] underline">{trainer.name}</p>
                         <p className="text-xs text-[#606060] truncate">{trainer.email}</p>
                       </div>
-                    </div>
+                    </button>
                   </td>
                   <td className="px-3 md:px-6 py-3 hidden sm:table-cell">
                     <div className="flex gap-1 flex-wrap">
@@ -527,6 +567,56 @@ export default function TrainersPage() {
           </table>
         </div>
       </div>
+
+      {/* 対応店舗 編集モーダル */}
+      {editingTrainer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-[calc(100vw-2rem)] sm:max-w-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
+              <h2 className="font-bold text-black">
+                {editingTrainer.name} - 対応店舗
+              </h2>
+              <button
+                onClick={() => setEditingTrainer(null)}
+                className="text-[#606060] hover:text-black text-xl"
+              >x</button>
+            </div>
+            <div className="p-6 space-y-4">
+              {stores.length === 0 ? (
+                <p className="text-sm text-[#606060]">店舗が登録されていません</p>
+              ) : (
+                <div className="space-y-2">
+                  {stores.map((store) => (
+                    <label key={store.id} className="flex items-center gap-3 p-2 border border-[#d9d9d9] cursor-pointer hover:bg-[#f0f0f0]">
+                      <input
+                        type="checkbox"
+                        checked={editStoreIds.includes(store.id)}
+                        onChange={() => toggleEditStore(store.id)}
+                        className="w-4 h-4 accent-[#ff5000]"
+                      />
+                      <span className="text-sm text-black">{store.name}</span>
+                      <span className="text-xs text-[#606060]">{store.area}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
+                <button
+                  onClick={() => setEditingTrainer(null)}
+                  className="flex-1 py-2.5 text-sm font-medium text-[#4d4d4d] bg-[#f0f0f0] rounded-full"
+                >キャンセル</button>
+                <button
+                  onClick={saveTrainerStores}
+                  disabled={editSaving}
+                  className="flex-1 py-2.5 text-sm font-bold text-white bg-[#ff5000] rounded-full hover:bg-[#e64800] disabled:opacity-50"
+                >
+                  {editSaving ? '保存中...' : '保存する'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <HelpGuide steps={adminTrainersGuide} pageTitle="トレーナー管理" />
     </div>
