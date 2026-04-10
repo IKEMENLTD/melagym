@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -288,9 +289,12 @@ export default function BookingPage() {
               </button>
             )}
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 100 100" fill="#ff5000" className="w-5 h-5">
-                <path d="M50 90 C25 65, 0 45, 15 25 C25 12, 45 15, 50 30 C55 15, 75 12, 85 25 C100 45, 75 65, 50 90Z" />
-              </svg>
+              <Image
+                src="/images/mela-logo-dark.svg"
+                alt="mela gym"
+                width={100}
+                height={56}
+              />
               <h1 className="text-base font-bold text-black">
                 {bookingType === 'first_visit' ? '体験予約' : '予約'}
               </h1>

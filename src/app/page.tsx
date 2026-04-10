@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -19,12 +20,14 @@ export default function Home() {
         <div className="relative z-10 max-w-md w-full flex flex-col items-center space-y-8">
           {/* Logo */}
           <div className="flex flex-col items-center space-y-3">
-            <svg viewBox="0 0 100 100" fill="white" className="w-16 h-16 drop-shadow-lg">
-              <path d="M50 90 C25 65, 0 45, 15 25 C25 12, 45 15, 50 30 C55 15, 75 12, 85 25 C100 45, 75 65, 50 90Z" />
-            </svg>
-            <h1 className="text-4xl font-bold tracking-tight mela-logo text-white">
-              mela gym
-            </h1>
+            <Image
+              src="/images/mela-logo.svg"
+              alt="mela gym"
+              width={240}
+              height={135}
+              priority
+              className="drop-shadow-lg"
+            />
             <p className="text-white/70 text-sm tracking-widest">PERSONAL TRAINING</p>
           </div>
 
@@ -39,14 +42,14 @@ export default function Home() {
 
             <Link
               href="/booking?type=first_visit"
-              className="block w-full max-w-xs py-4 px-8 bg-[#ff5000] text-black text-center font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider text-lg shadow-xl"
+              className="block w-full max-w-xs py-4 px-8 bg-[#ff5000] text-black text-center font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
             >
               体験セッションの予約
             </Link>
 
             <Link
               href="/booking?type=regular"
-              className="block w-full max-w-xs py-4 px-8 bg-white/90 text-black text-center font-bold rounded-full hover:bg-white hover:scale-[1.02] transition-all tracking-wider shadow-lg"
+              className="block w-full max-w-xs py-4 px-8 bg-white/90 text-black text-center font-bold rounded-full hover:bg-white hover:scale-[1.02] transition-all tracking-wider text-lg shadow-lg"
             >
               2回目以降の予約
             </Link>
@@ -70,6 +73,7 @@ export default function Home() {
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',
           minHeight: '100svh',
+          contentVisibility: 'auto',
         }}
       >
         <div className="absolute inset-0 bg-black/60" />
@@ -85,7 +89,7 @@ export default function Home() {
           </p>
           <Link
             href="/booking?type=first_visit"
-            className="inline-block py-4 px-10 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider shadow-xl"
+            className="inline-block py-4 px-10 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
           >
             無料体験を予約する
           </Link>
@@ -101,6 +105,7 @@ export default function Home() {
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',
           minHeight: '100svh',
+          contentVisibility: 'auto',
         }}
       >
         <div className="absolute inset-0 bg-black/60" />
@@ -125,7 +130,7 @@ export default function Home() {
 
           <Link
             href="/booking?type=first_visit"
-            className="inline-block py-4 px-10 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider shadow-xl"
+            className="inline-block py-4 px-10 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
           >
             今すぐ予約する
           </Link>
@@ -135,12 +140,12 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-black py-8 px-4 text-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 100 100" fill="#ff5000" className="w-6 h-6">
-              <path d="M50 90 C25 65, 0 45, 15 25 C25 12, 45 15, 50 30 C55 15, 75 12, 85 25 C100 45, 75 65, 50 90Z" />
-            </svg>
-            <span className="text-white font-bold mela-logo tracking-wide">mela gym</span>
-          </div>
+          <Image
+            src="/images/mela-logo.svg"
+            alt="mela gym"
+            width={100}
+            height={56}
+          />
           <Link
             href="/admin"
             className="text-white/40 text-xs hover:text-white/70 transition-colors"

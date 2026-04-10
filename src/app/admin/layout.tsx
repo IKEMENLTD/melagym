@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -79,12 +80,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-white border-r border-[#d9d9d9] hidden md:block">
         <div className="p-6">
           <div className="flex items-center gap-2">
-            <svg viewBox="0 0 100 100" fill="#ff5000" className="w-6 h-6">
-              <path d="M50 90 C25 65, 0 45, 15 25 C25 12, 45 15, 50 30 C55 15, 75 12, 85 25 C100 45, 75 65, 50 90Z" />
-            </svg>
-            <h1 className="text-xl font-bold text-black mela-logo">mela gym</h1>
+            <Image
+              src="/images/mela-logo-dark.svg"
+              alt="mela gym"
+              width={120}
+              height={68}
+            />
           </div>
-          <p className="text-xs text-[#606060] mt-1 ml-8">管理画面</p>
+          <p className="text-xs text-[#606060] mt-1">管理画面</p>
         </div>
         <nav className="px-3">
           {NAV_ITEMS.map((item) => {
@@ -110,10 +113,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="bg-white border-b border-[#d9d9d9] md:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 100 100" fill="#ff5000" className="w-5 h-5">
-                <path d="M50 90 C25 65, 0 45, 15 25 C25 12, 45 15, 50 30 C55 15, 75 12, 85 25 C100 45, 75 65, 50 90Z" />
-              </svg>
-              <h1 className="text-lg font-bold text-black mela-logo">mela gym</h1>
+              <Image
+                src="/images/mela-logo-dark.svg"
+                alt="mela gym"
+                width={100}
+                height={56}
+              />
             </div>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
