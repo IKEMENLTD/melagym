@@ -91,9 +91,33 @@ export default function AdminDashboard() {
     no_show: { label: '無断欠席', className: 'bg-[#fff5f0] text-[#ff5000]' },
   };
 
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-black">ダッシュボード</h1>
+
+      {/* 各種URL */}
+      <div className="bg-[#fff5f0] border border-[#ff5000]/20 p-4 rounded-lg">
+        <p className="text-sm font-bold text-black mb-2">各種ログインURL</p>
+        <div className="grid sm:grid-cols-3 gap-2 text-xs">
+          {[
+            { label: '管理画面', path: '/admin' },
+            { label: 'トレーナー', path: '/trainer' },
+            { label: '店舗管理', path: '/store' },
+          ].map((item) => (
+            <div key={item.path} className="flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg">
+              <span className="text-[#606060] truncate flex-1">{item.label}: {baseUrl}{item.path}</span>
+              <button
+                onClick={() => navigator.clipboard.writeText(`${baseUrl}${item.path}`)}
+                className="text-[#ff5000] font-bold whitespace-nowrap hover:underline"
+              >
+                コピー
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* 統計カード */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

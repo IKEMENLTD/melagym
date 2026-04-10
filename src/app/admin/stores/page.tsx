@@ -139,7 +139,10 @@ export default function StoresPage() {
     }
   }
 
+  const [togglingStoreId, setTogglingStoreId] = useState<string | null>(null);
+
   async function toggleStoreActive(store: Store) {
+    setTogglingStoreId(store.id);
     try {
       const res = await adminFetch('/api/admin/stores', {
         method: 'PATCH',
@@ -152,6 +155,8 @@ export default function StoresPage() {
       );
     } catch {
       alert('稼働状況の更新に失敗しました');
+    } finally {
+      setTogglingStoreId(null);
     }
   }
 
@@ -443,13 +448,16 @@ export default function StoresPage() {
               </button>
               <button
                 onClick={() => toggleStoreActive(store)}
-                className={`flex-1 py-2 text-sm font-medium transition-colors
+                disabled={togglingStoreId === store.id}
+                className={`flex-1 py-2 text-sm font-medium transition-colors disabled:opacity-50
                   ${store.is_active
                     ? 'text-[#ff5000] bg-[#fff5f0] hover:bg-[#ffe8db]'
                     : 'text-[#22c55e] bg-[#f0fdf4] hover:bg-[#dcfce7]'
                   }`}
               >
-                {store.is_active ? '停止する' : '稼働する'}
+                {togglingStoreId === store.id ? (
+                  <span className="flex items-center justify-center gap-1"><span className="mela-spinner-sm" /></span>
+                ) : store.is_active ? '停止する' : '稼働する'}
               </button>
             </div>
           </div>

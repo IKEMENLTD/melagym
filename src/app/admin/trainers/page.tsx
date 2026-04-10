@@ -68,7 +68,10 @@ export default function TrainersPage() {
     loadData();
   }, [loadData]);
 
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+
   async function toggleFirstVisit(trainerId: string, currentValue: boolean) {
+    setTogglingIds((prev) => new Set(prev).add(`fv-${trainerId}`));
     try {
       const res = await adminFetch('/api/admin/trainers', {
         method: 'PATCH',
@@ -83,10 +86,13 @@ export default function TrainersPage() {
       );
     } catch {
       alert('更新に失敗しました');
+    } finally {
+      setTogglingIds((prev) => { const s = new Set(prev); s.delete(`fv-${trainerId}`); return s; });
     }
   }
 
   async function toggleActive(trainerId: string, currentValue: boolean) {
+    setTogglingIds((prev) => new Set(prev).add(`ac-${trainerId}`));
     try {
       const res = await adminFetch('/api/admin/trainers', {
         method: 'PATCH',
@@ -101,6 +107,8 @@ export default function TrainersPage() {
       );
     } catch {
       alert('更新に失敗しました');
+    } finally {
+      setTogglingIds((prev) => { const s = new Set(prev); s.delete(`ac-${trainerId}`); return s; });
     }
   }
 
@@ -217,7 +225,7 @@ export default function TrainersPage() {
             </button>
           </div>
         </div>
-        <p className="text-xs text-[#606060] mt-2">新規登録URLをトレーナーに送ると、自分で登録できます。登録後に稼働トグルをONにしてください。</p>
+        <p className="text-xs text-[#606060] mt-2">登録URLをトレーナーに送ると自分で登録できます。登録後に稼働トグルをONにしてください。ログインURLは登録済みトレーナー用です。</p>
       </div>
 
       <div className="flex items-center justify-between">
@@ -450,26 +458,34 @@ export default function TrainersPage() {
                     )}
                   </td>
                   <td className="px-6 py-3 text-center">
-                    <button
-                      onClick={() => toggleFirstVisit(trainer.id, trainer.is_first_visit_eligible)}
-                      className={`w-10 h-6 rounded-full transition-colors relative
-                        ${trainer.is_first_visit_eligible ? 'bg-[#ff5000]' : 'bg-[#d9d9d9]'}`}
-                    >
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm
-                        ${trainer.is_first_visit_eligible ? 'left-[18px]' : 'left-0.5'}`}
-                      />
-                    </button>
+                    {togglingIds.has(`fv-${trainer.id}`) ? (
+                      <div className="flex justify-center"><div className="mela-spinner-sm" /></div>
+                    ) : (
+                      <button
+                        onClick={() => toggleFirstVisit(trainer.id, trainer.is_first_visit_eligible)}
+                        className={`w-10 h-6 rounded-full transition-colors relative
+                          ${trainer.is_first_visit_eligible ? 'bg-[#ff5000]' : 'bg-[#d9d9d9]'}`}
+                      >
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm
+                          ${trainer.is_first_visit_eligible ? 'left-[18px]' : 'left-0.5'}`}
+                        />
+                      </button>
+                    )}
                   </td>
                   <td className="px-6 py-3 text-center">
-                    <button
-                      onClick={() => toggleActive(trainer.id, trainer.is_active)}
-                      className={`w-10 h-6 rounded-full transition-colors relative
-                        ${trainer.is_active ? 'bg-[#22c55e]' : 'bg-[#d9d9d9]'}`}
-                    >
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm
-                        ${trainer.is_active ? 'left-[18px]' : 'left-0.5'}`}
-                      />
-                    </button>
+                    {togglingIds.has(`ac-${trainer.id}`) ? (
+                      <div className="flex justify-center"><div className="mela-spinner-sm" /></div>
+                    ) : (
+                      <button
+                        onClick={() => toggleActive(trainer.id, trainer.is_active)}
+                        className={`w-10 h-6 rounded-full transition-colors relative
+                          ${trainer.is_active ? 'bg-[#22c55e]' : 'bg-[#d9d9d9]'}`}
+                      >
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm
+                          ${trainer.is_active ? 'left-[18px]' : 'left-0.5'}`}
+                        />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
