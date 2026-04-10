@@ -165,7 +165,7 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 bg-[#ff5000] text-black font-bold text-base rounded-full
+          className="w-full py-4 bg-[#ff5000] text-white font-bold text-base rounded-full
             disabled:opacity-50 hover:bg-[#e64800] hover:scale-[1.02] active:bg-[#e64800] transition-all min-h-[56px] tracking-wider"
         >
           {loading ? (

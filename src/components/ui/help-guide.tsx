@@ -42,7 +42,7 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
       {/* ? ボタン（右下固定） */}
       <button
         onClick={() => { setOpen(true); setCurrentStep(0); }}
-        className="fixed right-4 z-50 w-14 h-14 bg-[#ff5000] text-black rounded-full shadow-[0_4px_20px_rgba(255,80,0,0.4)] hover:bg-[#e64800] hover:scale-110 transition-all flex items-center justify-center"
+        className="fixed right-4 z-50 w-14 h-14 bg-[#ff5000] text-white rounded-full shadow-[0_4px_20px_rgba(255,80,0,0.4)] hover:bg-[#e64800] hover:scale-110 transition-all flex items-center justify-center"
         style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="使い方ガイドを開く"
       >
@@ -82,7 +82,7 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
             <div className="px-6 py-6">
               {/* ステップ番号 */}
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-[#ff5000] text-black rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">
+                <div className="w-10 h-10 bg-[#ff5000] text-white rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">
                   {currentStep + 1}
                 </div>
                 <div className="flex gap-1.5">
@@ -121,7 +121,7 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
               )}
               <button
                 onClick={next}
-                className="flex-1 py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[48px]"
+                className="flex-1 py-3 bg-[#ff5000] text-white font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[48px]"
               >
                 {currentStep < steps.length - 1 ? '次へ' : '閉じる'}
               </button>

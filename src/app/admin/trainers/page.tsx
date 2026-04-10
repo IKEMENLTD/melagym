@@ -181,7 +181,7 @@ export default function TrainersPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <p className="text-[#ef4444] font-medium">{error}</p>
-        <button onClick={loadData} className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all">
+        <button onClick={loadData} className="px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all">
           再読み込み
         </button>
       </div>
@@ -249,7 +249,7 @@ export default function TrainersPage() {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="px-4 py-2.5 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
+          className="px-4 py-2.5 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
         >
           + トレーナー追加
         </button>
@@ -420,7 +420,7 @@ export default function TrainersPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 text-sm font-bold text-black bg-[#ff5000] rounded-full hover:bg-[#e64800] hover:scale-[1.02] disabled:opacity-50 transition-all"
+                  className="flex-1 py-2.5 text-sm font-bold text-white bg-[#ff5000] rounded-full hover:bg-[#e64800] hover:scale-[1.02] disabled:opacity-50 transition-all"
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center gap-2">

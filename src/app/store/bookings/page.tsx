@@ -130,7 +130,7 @@ export default function StoreBookingsPage() {
               onClick={handleTodayFilter}
               className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-full transition-colors ${
                 dateFilter === getToday()
-                  ? 'bg-[#ff5000] text-black shadow-[0_4px_20px_rgba(255,80,0,0.4)]'
+                  ? 'bg-[#ff5000] text-white shadow-[0_4px_20px_rgba(255,80,0,0.4)]'
                   : 'bg-[#fff5f0] text-[#ff5000] hover:bg-[#ffe8db]'
               }`}
             >
@@ -138,7 +138,7 @@ export default function StoreBookingsPage() {
             </button>
             <button
               onClick={handleFilterApply}
-              className="flex-1 sm:flex-none px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+              className="flex-1 sm:flex-none px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
             >
               検索
             </button>
@@ -163,7 +163,7 @@ export default function StoreBookingsPage() {
           <p className="text-[#ef4444] font-medium">{error}</p>
           <button
             onClick={() => fetchBookings(dateFilter || undefined, statusFilter || undefined)}
-            className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+            className="px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
           >
             再読み込み
           </button>

@@ -137,7 +137,7 @@ export default function BookingsPage() {
         <p className="text-[#ef4444] font-medium">{error}</p>
         <button
           onClick={() => loadBookings(page)}
-          className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
+          className="px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
         >
           再読み込み
         </button>
@@ -179,7 +179,7 @@ export default function BookingsPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-4 py-2.5 text-sm font-bold rounded-full transition-all
-                  ${filter === f ? 'bg-[#ff5000] text-black' : 'bg-[#f0f0f0] text-[#4d4d4d] hover:bg-[#d9d9d9]'}`}
+                  ${filter === f ? 'bg-[#ff5000] text-white' : 'bg-[#f0f0f0] text-[#4d4d4d] hover:bg-[#d9d9d9]'}`}
               >
                 {labels[f]}
               </button>

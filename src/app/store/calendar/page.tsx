@@ -145,7 +145,7 @@ export default function CalendarSettingsPage() {
         <p className="text-[#ef4444] font-medium">{error ?? '店舗情報の取得に失敗しました'}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+          className="px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
         >
           再読み込み
         </button>
@@ -262,7 +262,7 @@ export default function CalendarSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full sm:w-auto px-8 py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)] disabled:opacity-50"
+          className="w-full sm:w-auto px-8 py-3 bg-[#ff5000] text-white font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)] disabled:opacity-50"
         >
           {saving ? '保存中...' : '営業時間を保存'}
         </button>

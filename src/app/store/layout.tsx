@@ -164,7 +164,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           <button
             type="submit"
             disabled={!selectedStoreName || authLoading}
-            className="w-full py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)] disabled:opacity-50"
+            className="w-full py-3 bg-[#ff5000] text-white font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)] disabled:opacity-50"
           >
             {authLoading ? 'ログイン中...' : 'ログイン'}
           </button>

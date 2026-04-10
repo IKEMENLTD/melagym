@@ -56,7 +56,7 @@ body {
 /* Primary button base - capsule style */
 .btn-primary {
   background-color: var(--mela-primary);
-  color: #000000;
+  color: #ffffff;
   font-weight: 700;
   letter-spacing: 1px;
   border-radius: 9999px;

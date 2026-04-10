@@ -134,7 +134,7 @@ export default function StoreDashboard() {
         <p className="text-[#ef4444] font-medium">{error ?? 'データの取得に失敗しました'}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+          className="px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
         >
           再読み込み
         </button>

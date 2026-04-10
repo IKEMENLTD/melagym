@@ -68,7 +68,7 @@ export default function AdminDashboard() {
         <p className="text-[#ef4444] font-medium">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
+          className="px-4 py-2 bg-[#ff5000] text-white text-sm font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all"
         >
           再読み込み
         </button>

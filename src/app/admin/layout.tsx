@@ -116,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           />
           <button
             type="submit"
-            className="w-full py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors"
+            className="w-full py-3 bg-[#ff5000] text-white font-bold rounded-full hover:bg-[#e64800] transition-colors"
           >
             ログイン
           </button>

@@ -328,7 +328,7 @@ export default function BookingPage() {
                     setStep(2);
                     setSelectedSlot(null);
                   }}
-                  className="w-full py-3 bg-[#ff5000] text-black font-bold min-h-[48px] rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider"
+                  className="w-full py-3 bg-[#ff5000] text-white font-bold min-h-[48px] rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider"
                 >
                   別の時間を選ぶ
                 </button>
@@ -482,7 +482,7 @@ export default function BookingPage() {
               <button
                 onClick={handleRegularConfirm}
                 disabled={submitting}
-                className="flex-1 py-3 bg-[#ff5000] text-black font-bold min-h-[48px] rounded-full disabled:opacity-50 hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider"
+                className="flex-1 py-3 bg-[#ff5000] text-white font-bold min-h-[48px] rounded-full disabled:opacity-50 hover:bg-[#e64800] hover:scale-[1.02] transition-all tracking-wider"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">

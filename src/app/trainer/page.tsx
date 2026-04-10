@@ -181,7 +181,7 @@ export default function TrainerDashboard() {
         <p className="text-red-500 text-sm mb-4">{error}</p>
         <button
           onClick={fetchData}
-          className="px-6 py-2 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors"
+          className="px-6 py-2 bg-[#ff5000] text-white font-bold rounded-full hover:bg-[#e64800] transition-colors"
         >
           再読み込み
         </button>
