@@ -146,6 +146,65 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  // クエリパラメータにpayloadがある場合はAPIリクエストとして処理
+  if (e && e.parameter && e.parameter.payload) {
+    try {
+      var payload = JSON.parse(e.parameter.payload);
+
+      // APIキー認証
+      if (!constantTimeEquals_(payload.apiKey, API_KEY)) {
+        return jsonResponse_({ error: '認証に失敗しました' }, 401);
+      }
+
+      var action = payload.action;
+      var params = payload.params || {};
+
+      // プロトタイプ汚染対策
+      delete params['__proto__'];
+      delete params['constructor'];
+      delete params['prototype'];
+
+      var handlers = {
+        'getStores': getStores_,
+        'getTrainers': getTrainers_,
+        'getTrainersFull': getTrainersFull_,
+        'createBooking': createBooking_,
+        'cancelBooking': cancelBooking_,
+        'getBookings': getBookings_,
+        'getStats': getStats_,
+        'updateTrainer': updateTrainer_,
+        'addTrainer': addTrainer_,
+        'updateTrainerStores': updateTrainerStores_,
+        'addStore': addStore_,
+        'updateStore': updateStore_,
+        'getCustomerByLineUid': getCustomerByLineUid_,
+        'upsertCustomer': upsertCustomer_,
+        'getBookingById': getBookingById_,
+        'getBookingCountsForTrainers': getBookingCountsForTrainers_,
+        'getTrainerStoresByStore': getTrainerStoresByStore_,
+        'getAvailabilityCache': getAvailabilityCache_,
+        'upsertAvailabilityCache': upsertAvailabilityCache_,
+        'deleteAvailabilityCache': deleteAvailabilityCache_,
+        'getTrainerByEmail': getTrainerByEmail_,
+        'getTrainerBookings': getTrainerBookings_,
+        'getStoreBookings': getStoreBookings_,
+        'getStoreByName': getStoreByName_,
+      };
+
+      var handler = handlers[action];
+      if (!handler) {
+        return jsonResponse_({ error: '不明なアクションが指定されました' }, 400);
+      }
+
+      var result = handler(params);
+      return jsonResponse_(result, 200);
+    } catch (err) {
+      Logger.log('doGet API error: ' + err.message + '\n' + err.stack);
+      return jsonResponse_({ error: 'サーバーエラーが発生しました' }, 500);
+    }
+  }
+
+  // payloadなしの場合はヘルスチェック
   return jsonResponse_({ status: 'ok', message: 'メラジム GAS API is running' }, 200);
 }
 

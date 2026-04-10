@@ -2,8 +2,9 @@
  * GAS Web App へのHTTPラッパー
  *
  * GASのウェブアプリは302リダイレクトを返す。
- * Node.jsのfetchはデフォルトで302時にPOST→GETに変換するため、
- * redirect:'manual'で受け取り、リダイレクト先に手動でPOSTし直す。
+ * リダイレクト先はPOSTを受け付けない（405 Method Not Allowed）。
+ * そのため、GETリクエストのクエリパラメータでデータを送信する。
+ * データが大きい場合はbase64エンコードして送る。
  */
 
 const GAS_API_URL = process.env.NEXT_PUBLIC_GAS_API_URL ?? '';
@@ -34,35 +35,18 @@ export async function callGAS<T = Record<string, unknown>>(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120000);
 
-  const body = JSON.stringify({ action, params, apiKey: GAS_API_KEY });
+  const payload = JSON.stringify({ action, params, apiKey: GAS_API_KEY });
 
   try {
-    // Step 1: GASにPOST（redirect:manualで302を手動処理）
-    const initialRes = await fetch(GAS_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
+    // GETリクエストでデータを送信（POSTのリダイレクト問題を回避）
+    const encodedPayload = encodeURIComponent(payload);
+    const url = `${GAS_API_URL}?payload=${encodedPayload}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
       signal: controller.signal,
-      redirect: 'manual',
+      redirect: 'follow',
     });
-
-    let res: Response;
-
-    if (initialRes.status === 302 || initialRes.status === 301) {
-      // Step 2: リダイレクト先にPOSTし直す（GETに変換されないように）
-      const redirectUrl = initialRes.headers.get('location');
-      if (!redirectUrl) {
-        throw new Error('リダイレクトURLが取得できません');
-      }
-      res = await fetch(redirectUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: controller.signal,
-      });
-    } else {
-      res = initialRes;
-    }
 
     if (!res.ok) {
       throw new Error(`GAS API HTTP error: ${res.status}`);
