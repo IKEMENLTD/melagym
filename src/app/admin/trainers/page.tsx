@@ -325,15 +325,30 @@ export default function TrainersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
-                  Google Calendar ID
+                  Google Calendar ID <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.google_calendar_id}
                   onChange={(e) => setForm((p) => ({ ...p, google_calendar_id: e.target.value }))}
                   className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
-                  placeholder="example@group.calendar.google.com"
+                  placeholder="トレーナーのGmailアドレス or カレンダーID"
                 />
+                <div className="mt-2 bg-[#f0f0f0] p-3 text-xs text-[#4d4d4d] space-y-1.5">
+                  <p className="font-bold">トレーナーのCalendar ID:</p>
+                  <p>通常はトレーナーのGmailアドレスがそのままIDです</p>
+                  <p className="pt-1.5 font-bold">トレーナー側で必要な共有設定:</p>
+                  <p>Googleカレンダー →「設定と共有」→「特定のユーザーとの共有」に以下を追加:</p>
+                  <div className="flex items-center gap-1 bg-white border border-[#d9d9d9] px-2 py-1 mt-1">
+                    <span className="truncate flex-1 select-all text-[10px]">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
+                    <button
+                      type="button"
+                      onClick={() => { navigator.clipboard.writeText('melagym@instagram-generator-472905.iam.gserviceaccount.com'); }}
+                      className="text-[#ff5000] font-bold whitespace-nowrap"
+                    >コピー</button>
+                  </div>
+                  <p>権限:「予定の表示（空き時間情報のみ）」</p>
+                </div>
               </div>
 
               <div>

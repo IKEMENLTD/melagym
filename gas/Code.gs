@@ -113,6 +113,7 @@ function doPost(e) {
       'getStats': getStats_,
       'updateTrainer': updateTrainer_,
       'addTrainer': addTrainer_,
+      'addStore': addStore_,
       'updateStore': updateStore_,
       'getCustomerByLineUid': getCustomerByLineUid_,
       'upsertCustomer': upsertCustomer_,
@@ -812,6 +813,41 @@ function addTrainer_(params) {
       });
     });
   }
+
+  return { success: true, id: id };
+}
+
+/**
+ * 店舗追加
+ */
+function addStore_(params) {
+  if (!params.name || !params.area) {
+    return { error: '店舗名とエリアは必須です' };
+  }
+
+  var id = Utilities.getUuid();
+  var now = new Date().toISOString();
+  var businessHours = params.business_hours || {
+    monday:    { open: '09:00', close: '23:00' },
+    tuesday:   { open: '09:00', close: '23:00' },
+    wednesday: { open: '09:00', close: '23:00' },
+    thursday:  { open: '09:00', close: '23:00' },
+    friday:    { open: '09:00', close: '23:00' },
+    saturday:  { open: '09:00', close: '23:00' },
+    sunday:    { open: '09:00', close: '23:00' }
+  };
+
+  appendRow_('stores', {
+    id: id,
+    name: sanitizeForSheet_(String(params.name).substring(0, 100)),
+    area: sanitizeForSheet_(String(params.area).substring(0, 100)),
+    address: sanitizeForSheet_(String(params.address || '').substring(0, 200)),
+    google_calendar_id: String(params.google_calendar_id || ''),
+    business_hours_json: JSON.stringify(businessHours),
+    is_active: true,
+    created_at: now,
+    updated_at: now
+  });
 
   return { success: true, id: id };
 }

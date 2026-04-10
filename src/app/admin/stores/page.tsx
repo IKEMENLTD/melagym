@@ -113,6 +113,10 @@ export default function StoresPage() {
       setAddError('エリアは必須です');
       return;
     }
+    if (!addForm.google_calendar_id.trim()) {
+      setAddError('Google Calendar IDは必須です');
+      return;
+    }
 
     setAddSubmitting(true);
     try {
@@ -277,14 +281,34 @@ export default function StoresPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">Google Calendar ID</label>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                  Google Calendar ID <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={addForm.google_calendar_id}
                   onChange={(e) => setAddForm((p) => ({ ...p, google_calendar_id: e.target.value }))}
                   className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
                   placeholder="example@group.calendar.google.com"
+                  required
                 />
+                <div className="mt-2 bg-[#f0f0f0] p-3 text-xs text-[#4d4d4d] space-y-1.5">
+                  <p className="font-bold">Calendar IDの取得方法:</p>
+                  <p>1. Googleカレンダーを開く</p>
+                  <p>2. 該当カレンダーの「︙」→「設定と共有」</p>
+                  <p>3.「カレンダーの統合」→「カレンダーID」をコピー</p>
+                  <p className="pt-1.5 font-bold">空き枠連携に必要な共有設定:</p>
+                  <p>「特定のユーザーとの共有」に以下を追加:</p>
+                  <div className="flex items-center gap-1 bg-white border border-[#d9d9d9] px-2 py-1 mt-1">
+                    <span className="truncate flex-1 select-all text-[10px]">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
+                    <button
+                      type="button"
+                      onClick={() => { navigator.clipboard.writeText('melagym@instagram-generator-472905.iam.gserviceaccount.com'); }}
+                      className="text-[#ff5000] font-bold whitespace-nowrap"
+                    >コピー</button>
+                  </div>
+                  <p>権限:「予定の表示（すべての予定の詳細）」</p>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
@@ -366,7 +390,9 @@ export default function StoresPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">Google Calendar ID</label>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                  Google Calendar ID <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={editForm.google_calendar_id}
@@ -374,6 +400,7 @@ export default function StoresPage() {
                   className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
                   placeholder="example@group.calendar.google.com"
                 />
+                <p className="text-xs text-[#606060] mt-1">Googleカレンダー → 設定と共有 → カレンダーの統合 → カレンダーIDをコピー</p>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
