@@ -118,6 +118,11 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
     );
   }
 
+  // 新規登録ページはログインゲートをバイパス
+  if (pathname === '/trainer/register') {
+    return <>{children}</>;
+  }
+
   if (!authed) {
     return (
       <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center p-4">
@@ -150,6 +155,11 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
               'ログイン'
             )}
           </button>
+          <div className="text-center pt-2">
+            <Link href="/trainer/register" className="text-sm text-[#ff5000] hover:underline">
+              新規登録はこちら
+            </Link>
+          </div>
         </form>
       </div>
     );
