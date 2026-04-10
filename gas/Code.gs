@@ -176,6 +176,7 @@ function doPost(e) {
       'getAvailabilityCache': getAvailabilityCache_,
       'upsertAvailabilityCache': upsertAvailabilityCache_,
       'deleteAvailabilityCache': deleteAvailabilityCache_,
+      'clearAllAvailabilityCache': clearAllAvailabilityCache_,
       'authenticateTrainer': authenticateTrainer_,
       'setTrainerPassword': setTrainerPassword_,
       'getTrainerByEmail': getTrainerByEmail_,
@@ -248,6 +249,7 @@ function doGet(e) {
         'getAvailabilityCache': getAvailabilityCache_,
         'upsertAvailabilityCache': upsertAvailabilityCache_,
         'deleteAvailabilityCache': deleteAvailabilityCache_,
+      'clearAllAvailabilityCache': clearAllAvailabilityCache_,
         'authenticateTrainer': authenticateTrainer_,
       'setTrainerPassword': setTrainerPassword_,
       'getTrainerByEmail': getTrainerByEmail_,
@@ -474,7 +476,15 @@ function parseStore_(row) {
     area: row.area,
     address: row.address || '',
     google_calendar_id: row.google_calendar_id,
-    business_hours: parseJsonField_(row.business_hours_json) || {},
+    business_hours: parseJsonField_(row.business_hours_json) || {
+      monday: { open: '09:00', close: '23:00' },
+      tuesday: { open: '09:00', close: '23:00' },
+      wednesday: { open: '09:00', close: '23:00' },
+      thursday: { open: '09:00', close: '23:00' },
+      friday: { open: '09:00', close: '23:00' },
+      saturday: { open: '09:00', close: '23:00' },
+      sunday: { open: '09:00', close: '23:00' },
+    },
     is_active: parseBool_(row.is_active),
     passcode_hash: row.passcode_hash || '',
     created_at: row.created_at || '',
@@ -1858,6 +1868,22 @@ function deleteAvailabilityCache_(params) {
     invalidateCache_('availability_cache');
 
     return { success: true };
+  });
+}
+
+/**
+ * 全キャッシュクリア（管理者用・デバッグ用）
+ */
+function clearAllAvailabilityCache_(params) {
+  return withLock_(function() {
+    var sheet = getSheet_('availability_cache');
+    if (!sheet) return { success: true, deleted: 0 };
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, deleted: 0 };
+    var count = lastRow - 1;
+    sheet.deleteRows(2, count);
+    invalidateCache_('availability_cache');
+    return { success: true, deleted: count };
   });
 }
 

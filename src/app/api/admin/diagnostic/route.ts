@@ -103,3 +103,32 @@ export async function GET(request: NextRequest) {
     checks,
   });
 }
+
+/**
+ * POST: キャッシュクリア等のメンテナンス操作
+ * body: { action: 'clearCache' }
+ */
+export async function POST(request: NextRequest) {
+  const auth = verifyAdminAuth(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  let body: { action?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'リクエストが不正です' }, { status: 400 });
+  }
+
+  if (body.action === 'clearCache') {
+    try {
+      const result = await callGAS<{ success: boolean; deleted: number }>('clearAllAvailabilityCache', {});
+      return NextResponse.json({ success: true, message: `${result.deleted}件のキャッシュを削除しました` });
+    } catch (e) {
+      return NextResponse.json({ error: `キャッシュクリア失敗: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ error: '不明なアクションです' }, { status: 400 });
+}

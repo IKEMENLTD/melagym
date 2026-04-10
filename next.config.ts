@@ -29,14 +29,15 @@ const securityHeaders = [
   {
     // CSP: XSS・データ注入攻撃防止
     // 'unsafe-inline' はNext.jsのインラインスタイルに必要
+    // Google Fonts/CDNはブラウザ拡張機能が参照する場合がある
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
       "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' https://script.google.com https://script.googleusercontent.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://script.google.com https://script.googleusercontent.com https://www.googleapis.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -1,4 +1,5 @@
 import { addMinutes, format, parseISO, isAfter, isBefore } from 'date-fns';
+import { enUS } from 'date-fns/locale';
 import { getFreeBusy } from './google-calendar';
 import { callGAS } from './sheets-api';
 import type { TimeSlot, Store, Trainer, BusinessHours } from '@/types/database';
@@ -105,10 +106,16 @@ export async function getAvailability(
     : [];
 
   // 営業時間を取得
-  const dayOfWeek = format(parseISO(date), 'EEEE').toLowerCase();
-  const hours = (store.business_hours as BusinessHours)[dayOfWeek];
+  // 英語ロケール明示: 日本語サーバーで '土曜日' が返るのを防止
+  const dayOfWeek = format(parseISO(date), 'EEEE', { locale: enUS }).toLowerCase();
+  const bh = store.business_hours as BusinessHours | null;
+
+  // business_hoursが空/未設定の場合はデフォルト営業時間（09:00-23:00）にフォールバック
+  const DEFAULT_HOURS = { open: '09:00', close: '23:00' };
+  const hours = (bh && Object.keys(bh).length > 0) ? (bh[dayOfWeek] ?? null) : DEFAULT_HOURS;
+
   if (!hours) {
-    console.warn(`[availability] No business hours for ${dayOfWeek} at store ${storeId}`);
+    console.warn(`[availability] No business hours for ${dayOfWeek} at store ${storeId} (定休日)`);
     return []; // 定休日
   }
 
