@@ -169,7 +169,7 @@ function setupSheets() {
     'trainers': ['id', 'name', 'email', 'phone', 'photo_url', 'specialties_json', 'bio', 'is_first_visit_eligible', 'is_active', 'google_calendar_id', 'available_hours_json', 'created_at', 'updated_at'],
     'trainer_stores': ['trainer_id', 'store_id', 'buffer_minutes'],
     'customers': ['id', 'line_uid', 'name', 'email', 'phone', 'age_group', 'is_first_visit_completed', 'favorite_trainer_id', 'created_at', 'updated_at'],
-    'bookings': ['id', 'customer_id', 'trainer_id', 'store_id', 'scheduled_at', 'duration_minutes', 'booking_type', 'status', 'google_calendar_event_id', 'notes', 'cancelled_at', 'cancel_reason', 'created_at', 'updated_at'],
+    'bookings': ['id', 'customer_id', 'trainer_id', 'store_id', 'scheduled_at', 'duration_minutes', 'booking_type', 'status', 'google_calendar_event_id', 'trainer_calendar_event_id', 'notes', 'cancelled_at', 'cancel_reason', 'created_at', 'updated_at'],
     'availability_cache': ['id', 'trainer_id', 'store_id', 'date', 'slots_json', 'fetched_at']
   };
 
@@ -369,6 +369,7 @@ function parseBooking_(row) {
     booking_type: row.booking_type,
     status: row.status,
     google_calendar_event_id: row.google_calendar_event_id || null,
+    trainer_calendar_event_id: row.trainer_calendar_event_id || null,
     notes: row.notes || null,
     cancelled_at: cancelledAt || null,
     cancel_reason: row.cancel_reason || null,
@@ -525,6 +526,7 @@ function createBooking_(params) {
       booking_type: (data.booking_type === 'first_visit' || data.booking_type === 'regular') ? data.booking_type : 'regular',
       status: 'confirmed',
       google_calendar_event_id: data.google_calendar_event_id || '',
+      trainer_calendar_event_id: data.trainer_calendar_event_id || '',
       notes: truncateString_(data.notes || '', MAX_STRING_LENGTH),
       cancelled_at: '',
       cancel_reason: '',
@@ -605,10 +607,21 @@ function cancelBooking_(params) {
     }
   }
 
+  // trainer情報を取得してカレンダーID返却
+  var trainers = getAllRows_('trainers');
+  var trainerObj = null;
+  for (var k = 0; k < trainers.length; k++) {
+    if (trainers[k].id === booking.trainer_id) {
+      trainerObj = parseTrainer_(trainers[k]);
+      break;
+    }
+  }
+
   return {
     success: true,
     booking: parseBooking_(booking),
     store_google_calendar_id: store ? store.google_calendar_id : null,
+    trainer_google_calendar_id: trainerObj ? trainerObj.google_calendar_id : null,
   };
 }
 

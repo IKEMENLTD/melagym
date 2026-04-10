@@ -61,6 +61,7 @@ export interface Booking {
   booking_type: 'first_visit' | 'regular';
   status: BookingStatus;
   google_calendar_event_id: string | null;
+  trainer_calendar_event_id: string | null;
   notes: string | null;
   cancelled_at: string | null;
   cancel_reason: string | null;

@@ -10,6 +10,7 @@ import {
   clearStoreAuth,
   getStoreName,
 } from '@/lib/store-fetch';
+import { MarqueeBanner } from '@/components/ui/marquee-banner';
 
 interface StoreOption {
   id: string;
@@ -333,6 +334,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           )}
         </header>
 
+        <MarqueeBanner />
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

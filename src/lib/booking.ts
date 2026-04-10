@@ -94,11 +94,13 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
   const eventSummary = `[メラジム] ${req.booking_type === 'first_visit' ? '体験' : 'セッション'} - ${req.customer.name ?? '顧客'}`;
   const eventDescription = `トレーナー: ${trainer.name}\n店舗: ${store.name}`;
 
-  let createdEventId: string | null = null;
+  let storeEventId: string | null = null;
+  let trainerEventId: string | null = null;
 
   try {
+    // Step 3a: 店舗カレンダーにイベント書込み
     if (store.google_calendar_id) {
-      createdEventId = await createCalendarEvent(
+      storeEventId = await createCalendarEvent(
         store.google_calendar_id,
         eventSummary,
         req.slot_start,
@@ -106,8 +108,25 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
         eventDescription
       );
 
-      if (!createdEventId) {
+      if (!storeEventId) {
         return { success: false, error: 'カレンダーへの登録に失敗しました。もう一度お試しください' };
+      }
+    }
+
+    // Step 3b: トレーナーのカレンダーにもイベント書込み
+    if (trainer.google_calendar_id) {
+      try {
+        trainerEventId = await createCalendarEvent(
+          trainer.google_calendar_id,
+          `[メラジム] ${store.name} - ${req.customer.name ?? '顧客'}`,
+          req.slot_start,
+          slotEnd,
+          `店舗: ${store.name}\n顧客: ${req.customer.name ?? ''}`
+        );
+      } catch {
+        // トレーナーカレンダーへの書込み失敗は予約自体を失敗させない
+        // （書込み権限がない場合がある）
+        console.error('Failed to write to trainer calendar:', trainer.google_calendar_id);
       }
     }
 
@@ -167,14 +186,22 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
         scheduled_at: req.slot_start,
         duration_minutes: durationMinutes,
         booking_type: req.booking_type,
-        google_calendar_event_id: createdEventId,
+        google_calendar_event_id: storeEventId,
+        trainer_calendar_event_id: trainerEventId,
       }
     );
 
     if (!result.success) {
       // 予約失敗時はカレンダーイベントを削除
-      if (store.google_calendar_id && createdEventId) {
-        await deleteCalendarEvent(store.google_calendar_id, createdEventId);
+      if (store.google_calendar_id && storeEventId) {
+        await deleteCalendarEvent(store.google_calendar_id, storeEventId);
+      }
+      if (trainer.google_calendar_id && trainerEventId) {
+        try {
+          await deleteCalendarEvent(trainer.google_calendar_id, trainerEventId);
+        } catch {
+          console.error('Failed to rollback trainer calendar event:', trainerEventId);
+        }
       }
       // セキュリティ: GAS内部エラーの詳細をクライアントに返さない
       console.error('Booking creation failed on GAS:', result.error);
@@ -191,12 +218,19 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
 
     return { success: true, booking: result.booking };
   } catch (error) {
-    // rollback: clean up calendar event if it was created
-    if (createdEventId && store.google_calendar_id) {
+    // rollback: clean up calendar events if they were created
+    if (storeEventId && store.google_calendar_id) {
       try {
-        await deleteCalendarEvent(store.google_calendar_id, createdEventId);
+        await deleteCalendarEvent(store.google_calendar_id, storeEventId);
       } catch {
-        console.error('Failed to rollback calendar event:', createdEventId);
+        console.error('Failed to rollback store calendar event:', storeEventId);
+      }
+    }
+    if (trainerEventId && trainer.google_calendar_id) {
+      try {
+        await deleteCalendarEvent(trainer.google_calendar_id, trainerEventId);
+      } catch {
+        console.error('Failed to rollback trainer calendar event:', trainerEventId);
       }
     }
     throw error;
@@ -290,6 +324,7 @@ export async function cancelBooking(
     error?: string;
     booking?: Booking;
     store_google_calendar_id?: string | null;
+    trainer_google_calendar_id?: string | null;
   }>('cancelBooking', { bookingId, reason });
 
   if (!result.success) {
@@ -298,7 +333,7 @@ export async function cancelBooking(
     return { success: false, error: 'キャンセル処理に失敗しました' };
   }
 
-  // Googleカレンダーからイベント削除
+  // Googleカレンダーからイベント削除（店舗）
   if (result.booking?.google_calendar_event_id && result.store_google_calendar_id) {
     try {
       await deleteCalendarEvent(
@@ -307,8 +342,23 @@ export async function cancelBooking(
       );
     } catch {
       console.error(
-        'Failed to delete calendar event:',
+        'Failed to delete store calendar event:',
         result.booking.google_calendar_event_id
+      );
+    }
+  }
+
+  // Googleカレンダーからイベント削除（トレーナー）
+  if (result.booking?.trainer_calendar_event_id && result.trainer_google_calendar_id) {
+    try {
+      await deleteCalendarEvent(
+        result.trainer_google_calendar_id,
+        result.booking.trainer_calendar_event_id
+      );
+    } catch {
+      console.error(
+        'Failed to delete trainer calendar event:',
+        result.booking.trainer_calendar_event_id
       );
     }
   }

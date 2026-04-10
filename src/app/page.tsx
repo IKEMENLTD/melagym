@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { MarqueeBanner } from '@/components/ui/marquee-banner';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
+      <MarqueeBanner />
+
       {/* Hero section - full viewport */}
       <section
         className="relative flex items-center justify-center px-4 parallax-section"
@@ -152,6 +155,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <MarqueeBanner />
 
       {/* Footer */}
       <footer className="bg-black py-8 px-4">

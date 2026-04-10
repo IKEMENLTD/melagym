@@ -13,6 +13,7 @@ import { CustomerForm, type CustomerFormData } from '@/components/booking/custom
 import type { Store, Trainer, TimeSlot, BookingResponse } from '@/types/database';
 import { HelpGuide } from '@/components/ui/help-guide';
 import { bookingGuide } from '@/lib/guide-data';
+import { MarqueeBanner } from '@/components/ui/marquee-banner';
 
 type BookingType = 'first_visit' | 'regular';
 
@@ -388,6 +389,8 @@ export default function BookingPage() {
           />
         </div>
       </header>
+
+      <MarqueeBanner />
 
       {/* メインコンテンツ */}
       <main className="max-w-lg mx-auto px-4 py-6">

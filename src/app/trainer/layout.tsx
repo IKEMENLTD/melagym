@@ -10,6 +10,7 @@ import {
   clearTrainerSession,
   getTrainerSession,
 } from '@/lib/trainer-fetch';
+import { MarqueeBanner } from '@/components/ui/marquee-banner';
 
 interface NavIcon {
   paths: string[];
@@ -306,6 +307,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
           )}
         </header>
 
+        <MarqueeBanner />
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

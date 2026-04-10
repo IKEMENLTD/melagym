@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { isLoggedIn, setAdminToken, clearAdminToken } from '@/lib/admin-fetch';
+import { MarqueeBanner } from '@/components/ui/marquee-banner';
 
 interface NavIcon {
   paths: string[];
@@ -254,6 +255,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </header>
 
+        <MarqueeBanner />
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

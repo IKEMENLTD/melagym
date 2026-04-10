@@ -360,7 +360,7 @@ export default function TrainersPage() {
                       className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
                     >コピー</button>
                   </div>
-                  <p>権限:「予定の表示（空き時間情報のみ）」</p>
+                  <p>権限:「予定の変更」を選択（予約のカレンダー自動書込みに必要。「空き時間情報のみ」でも予約は成立しますが書込みは行われません）</p>
                 </div>
               </div>
 
