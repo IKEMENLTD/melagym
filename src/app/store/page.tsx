@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { storeFetch } from '@/lib/store-fetch';
 import { HelpGuide } from '@/components/ui/help-guide';
 import { storeDashboardGuide } from '@/lib/guide-data';
+import { TodayTimeline } from '@/components/smart-ux/today-timeline';
 
 interface StoreDetail {
   id: string;
@@ -29,6 +30,9 @@ interface StoreBooking {
   id: string;
   scheduled_at: string;
   status: string;
+  customer_name?: string;
+  trainer_name?: string;
+  duration_minutes?: number;
 }
 
 interface DashboardData {
@@ -36,6 +40,7 @@ interface DashboardData {
   trainers: TrainerInfo[];
   todayCount: number;
   weekCount: number;
+  todayBookings: StoreBooking[];
 }
 
 function countBookings(
@@ -103,11 +108,16 @@ export default function StoreDashboard() {
           return d >= week.start && d < week.end;
         });
 
+        const todayBookings = bookingsData.bookings.filter(
+          (b) => b.scheduled_at.startsWith(today) && b.status === 'confirmed'
+        );
+
         setData({
           store: settingsData.store,
           trainers: settingsData.trainers,
           todayCount,
           weekCount,
+          todayBookings,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'データの取得に失敗しました';
@@ -335,6 +345,18 @@ export default function StoreDashboard() {
           )}
         </div>
       </div>
+      {/* 今日のタイムライン */}
+      <TodayTimeline
+        bookings={data.todayBookings.map((b) => ({
+          id: b.id,
+          scheduled_at: b.scheduled_at,
+          duration_minutes: b.duration_minutes ?? 60,
+          status: b.status,
+          customer_name: b.customer_name ?? '顧客名なし',
+          trainer_name: b.trainer_name ?? 'トレーナー未定',
+        }))}
+      />
+
       <HelpGuide steps={storeDashboardGuide} pageTitle="店舗ダッシュボード" />
     </div>
   );

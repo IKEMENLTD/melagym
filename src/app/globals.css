@@ -250,6 +250,139 @@ input:focus, textarea:focus, select:focus {
   animation: marquee 20s linear infinite;
 }
 
+/* ページ遷移フェードインアップ */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out;
+}
+
+/* カード登場アニメーション（stagger用） */
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 成功チェックマークアニメーション */
+@keyframes check-draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.animate-check {
+  stroke-dasharray: 24;
+  animation: check-draw 0.4s ease-out 0.2s forwards;
+  stroke-dashoffset: 24;
+}
+
+/* パルスグロー（CTA注目用） */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 80, 0, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(255, 80, 0, 0.2); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* カウントアップ用 */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* トースト通知 */
+@keyframes toast-in {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
+}
+
+/* 選択バウンス */
+@keyframes select-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.97); }
+  70% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+.animate-select-bounce {
+  animation: select-bounce 0.3s ease-out;
+}
+
+/* チェックマーク登場 */
+@keyframes check-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-check-pop {
+  animation: check-pop 0.3s ease-out;
+}
+
+/* 紙吹雪 */
+@keyframes confetti-fall-1 {
+  0% { transform: translate(0, -20px) rotate(0deg); opacity: 1; }
+  100% { transform: translate(30px, 300px) rotate(720deg); opacity: 0; }
+}
+@keyframes confetti-fall-2 {
+  0% { transform: translate(0, -20px) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-25px, 280px) rotate(-540deg); opacity: 0; }
+}
+@keyframes confetti-fall-3 {
+  0% { transform: translate(0, -20px) rotate(0deg); opacity: 1; }
+  100% { transform: translate(40px, 320px) rotate(600deg); opacity: 0; }
+}
+@keyframes confetti-fall-4 {
+  0% { transform: translate(0, -20px) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-35px, 260px) rotate(-480deg); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: 0;
+  pointer-events: none;
+}
+.confetti-piece:nth-child(1) {
+  left: 20%;
+  background: #ff5000;
+  animation: confetti-fall-1 2s ease-out forwards;
+  animation-delay: 0.1s;
+}
+.confetti-piece:nth-child(2) {
+  left: 45%;
+  background: #22c55e;
+  animation: confetti-fall-2 2.2s ease-out forwards;
+  animation-delay: 0.2s;
+}
+.confetti-piece:nth-child(3) {
+  left: 65%;
+  background: #ff5000;
+  animation: confetti-fall-3 1.8s ease-out forwards;
+  animation-delay: 0s;
+}
+.confetti-piece:nth-child(4) {
+  left: 80%;
+  background: #3b82f6;
+  animation: confetti-fall-4 2.1s ease-out forwards;
+  animation-delay: 0.3s;
+}
+
+/* スケルトンシマー */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
 .mela-bg-training2 {
   position: relative;
 }

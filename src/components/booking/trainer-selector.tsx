@@ -1,6 +1,7 @@
 'use client';
 
 import type { Trainer } from '@/types/database';
+import { CardSkeleton } from '@/components/ui/skeleton';
 
 interface TrainerSelectorProps {
   trainers: Trainer[];
@@ -30,11 +31,11 @@ export function TrainerSelector({
     return (
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-black">トレーナーを選択</h2>
-        <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <div className="mela-spinner" role="status">
-            <span className="sr-only">読み込み中</span>
-          </div>
-          <p className="text-sm text-[#606060]">読み込み中...</p>
+        <div className="grid gap-3" aria-label="読み込み中" role="status">
+          <span className="sr-only">読み込み中</span>
+          {Array.from({ length: 3 }, (_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );
@@ -70,7 +71,7 @@ export function TrainerSelector({
             w-full text-left p-4 border-2 transition-all rounded-lg
             min-h-[64px] active:scale-[0.98]
             ${selectedTrainerId === 'auto'
-              ? 'border-[#ff5000] bg-[#fff5f0]'
+              ? 'border-[#ff5000] bg-[#fff5f0] animate-select-bounce'
               : 'border-[#d9d9d9] bg-white hover:border-[#606060]'}
           `}
         >
@@ -90,7 +91,7 @@ export function TrainerSelector({
               <p className="text-xs text-[#606060]">空き状況に合わせて最適なトレーナーをご案内</p>
             </div>
             {selectedTrainerId === 'auto' && (
-              <div className="w-6 h-6 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0 animate-check-pop">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -115,7 +116,7 @@ export function TrainerSelector({
                 w-full text-left p-4 border-2 transition-all rounded-lg
                 min-h-[64px] active:scale-[0.98]
                 ${isSelected
-                  ? 'border-[#ff5000] bg-[#fff5f0]'
+                  ? 'border-[#ff5000] bg-[#fff5f0] animate-select-bounce'
                   : 'border-[#d9d9d9] bg-white hover:border-[#606060]'}
               `}
             >
@@ -152,7 +153,7 @@ export function TrainerSelector({
                   )}
                 </div>
                 {isSelected && (
-                  <div className="w-6 h-6 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0 animate-check-pop">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>

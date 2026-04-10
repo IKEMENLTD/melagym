@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { adminFetch } from '@/lib/admin-fetch';
 import { HelpGuide } from '@/components/ui/help-guide';
 import { adminDashboardGuide } from '@/lib/guide-data';
+import { StatCardSkeleton, TableRowSkeleton } from '@/components/ui/skeleton';
+import { AdminActionList } from '@/components/smart-ux/admin-action-list';
 
 interface DashboardStats {
   todayBookings: number;
@@ -24,6 +26,35 @@ interface RecentBooking {
   scheduled_at: string;
   status: string;
   booking_type: string;
+}
+
+/** 数字カウントアップアニメーション */
+function CountUpNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [display, setDisplay] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (value === 0) {
+      setDisplay(0);
+      return;
+    }
+    const duration = 800;
+    const start = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * value));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value]);
+
+  return <>{display}{suffix}</>;
 }
 
 export default function AdminDashboard() {
@@ -55,9 +86,25 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3">
-        <div className="mela-spinner" />
-        <p className="text-sm text-[#606060]">読み込み中...</p>
+      <div className="space-y-6">
+        <div className="skeleton h-8 w-48" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }, (_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="bg-white border border-[#d9d9d9]">
+          <div className="px-6 py-4 border-b border-[#d9d9d9]">
+            <div className="skeleton h-5 w-32" />
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              {Array.from({ length: 5 }, (_, i) => (
+                <TableRowSkeleton key={i} cols={6} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
@@ -142,13 +189,26 @@ export default function AdminDashboard() {
 
       {/* 統計カード */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {statCards.map((card) => (
-          <div key={card.label} className={`${card.bg} p-4`}>
+        {statCards.map((card, index) => (
+          <div
+            key={card.label}
+            className={`${card.bg} p-4`}
+            style={{
+              animation: `fade-in-scale 0.4s ease-out ${index * 0.08}s both`,
+            }}
+          >
             <p className={`text-xs font-medium ${card.text} opacity-70`}>{card.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${card.text}`}>{card.value}</p>
+            <p className={`text-2xl font-bold mt-1 ${card.text}`}>
+              {typeof card.value === 'number'
+                ? <CountUpNumber value={card.value} />
+                : card.value}
+            </p>
           </div>
         ))}
       </div>
+
+      {/* 今日のアクションリスト */}
+      <AdminActionList todayBookings={stats?.todayBookings ?? 0} />
 
       {/* 直近の予約 */}
       <div className="bg-white border border-[#d9d9d9]">

@@ -14,6 +14,9 @@ import type { Store, Trainer, TimeSlot, BookingResponse } from '@/types/database
 import { HelpGuide } from '@/components/ui/help-guide';
 import { bookingGuide } from '@/lib/guide-data';
 import { MarqueeBanner } from '@/components/ui/marquee-banner';
+import { ProgressBar } from '@/components/smart-ux/progress-bar';
+import { AvailabilitySummary } from '@/components/smart-ux/availability-summary';
+import { RecommendedSlots } from '@/components/smart-ux/recommended-slots';
 
 type BookingType = 'first_visit' | 'regular';
 
@@ -241,20 +244,31 @@ export default function BookingPage() {
         }}
       >
         <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 bg-white/95 backdrop-blur-sm p-8 max-w-md w-full text-center rounded-2xl">
+        <div className="relative z-10 bg-white/95 backdrop-blur-sm p-8 max-w-md w-full text-center rounded-2xl animate-fade-in-up overflow-hidden">
           {bookingResult.success ? (
             <>
-              <div className="w-16 h-16 bg-[#ff5000] rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+              {/* 紙吹雪エフェクト */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                <div className="confetti-piece" />
+                <div className="confetti-piece" />
+                <div className="confetti-piece" />
+                <div className="confetti-piece" />
+              </div>
+
+              <div className="w-16 h-16 bg-[#ff5000] rounded-full flex items-center justify-center mx-auto mb-4 animate-check-pop" aria-hidden="true">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
+                  <polyline points="20 6 9 17 4 12" className="animate-check" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-black mb-2">予約が確定しました</h1>
-              <p className="text-[#606060] text-sm mb-6">
+              <h1 className="text-xl font-bold text-black mb-2 animate-fade-in-up" style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>予約が確定しました</h1>
+              <p className="text-[#606060] text-sm mb-6 animate-fade-in-up" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
                 予約確認の通知をお送りします。
               </p>
               {bookingResult.booking && (
-                <div className="bg-[#f0f0f0] p-4 rounded-lg text-left text-sm space-y-2 mb-6">
+                <div
+                  className="bg-[#f0f0f0] p-4 rounded-lg text-left text-sm space-y-2 mb-6"
+                  style={{ animation: 'fade-in-scale 0.4s ease-out 0.35s both' }}
+                >
                   <div className="flex justify-between gap-2">
                     <span className="text-[#606060] shrink-0">予約番号</span>
                     <span className="font-medium font-mono text-xs truncate">
@@ -387,6 +401,7 @@ export default function BookingPage() {
               setStep(targetStep);
             }}
           />
+          <ProgressBar currentStep={step} totalSteps={steps.length} />
         </div>
       </header>
 
@@ -403,6 +418,7 @@ export default function BookingPage() {
 
         {/* Step 0: 店舗選択 */}
         {step === 0 && (
+          <div key="step-0" className="animate-fade-in-up">
           <StoreSelector
             stores={stores}
             selectedStoreId={selectedStoreId}
@@ -410,10 +426,12 @@ export default function BookingPage() {
             onSelect={handleStoreSelect}
             loading={storesLoading}
           />
+          </div>
         )}
 
         {/* Step 1: トレーナー選択 */}
         {step === 1 && (
+          <div key="step-1" className="animate-fade-in-up">
           <TrainerSelector
             trainers={trainers}
             selectedTrainerId={selectedTrainerId}
@@ -422,12 +440,21 @@ export default function BookingPage() {
             showAutoOption={true}
             loading={trainersLoading}
           />
+          </div>
         )}
 
         {/* Step 2: 日時選択 */}
         {step === 2 && (
-          <div className="space-y-4">
+          <div key="step-2" className="animate-fade-in-up space-y-4">
             <h2 className="text-lg font-bold text-black">日時を選択</h2>
+            {/* 空き枠サマリー: 本日/明日/明後日 */}
+            {selectedStoreId && selectedTrainerId && (
+              <AvailabilitySummary
+                storeId={selectedStoreId}
+                trainerId={selectedTrainerId}
+                onDateSelect={setSelectedDate}
+              />
+            )}
             <SlotCalendar
               slots={slots}
               selectedDate={selectedDate}
@@ -436,15 +463,25 @@ export default function BookingPage() {
               onSlotSelect={handleSlotSelect}
               loading={slotsLoading}
             />
+            {/* おすすめ時間帯の提案 */}
+            {!slotsLoading && selectedDate && (
+              <RecommendedSlots
+                slots={slots}
+                selectedDate={selectedDate}
+                onSlotSelect={handleSlotSelect}
+              />
+            )}
           </div>
         )}
 
         {/* Step 3: 情報入力（初回のみ） */}
         {step === 3 && bookingType === 'first_visit' && (
+          <div key="step-3" className="animate-fade-in-up">
           <CustomerForm
             loading={submitting}
             onSubmit={(data) => handleBookingSubmit(undefined, data)}
           />
+          </div>
         )}
       </main>
 

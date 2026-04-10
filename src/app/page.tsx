@@ -44,7 +44,7 @@ export default function Home() {
 
             <Link
               href="/booking?type=first_visit"
-              className="w-full max-w-xs py-4 px-8 bg-[#ff5000] text-white text-center font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] active:scale-[0.98] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[56px] flex items-center justify-center"
+              className="w-full max-w-xs py-4 px-8 bg-[#ff5000] text-white text-center font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] active:scale-[0.98] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[56px] flex items-center justify-center animate-pulse-glow"
             >
               体験セッションの予約
             </Link>

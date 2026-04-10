@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { trainerFetch, getTrainerSession } from '@/lib/trainer-fetch';
 import { HelpGuide } from '@/components/ui/help-guide';
 import { trainerDashboardGuide } from '@/lib/guide-data';
+import { NextBookingCountdown } from '@/components/smart-ux/next-booking-countdown';
 
 interface TrainerBooking {
   id: string;
@@ -284,6 +285,14 @@ export default function TrainerDashboard() {
           })}
         </p>
       </div>
+
+      {/* 次の予約までのカウントダウン */}
+      <NextBookingCountdown
+        todayBookings={todayBookings.map((b) => ({
+          scheduled_at: b.scheduled_at,
+          customer_name: b.customer_name,
+        }))}
+      />
 
       {/* カレンダー連携ステータス */}
       <div className="bg-white p-4 rounded-lg border border-[#d9d9d9]">

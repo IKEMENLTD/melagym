@@ -1,6 +1,7 @@
 'use client';
 
 import type { Store } from '@/types/database';
+import { CardSkeleton } from '@/components/ui/skeleton';
 
 interface StoreSelectorProps {
   stores: Store[];
@@ -16,11 +17,11 @@ export function StoreSelector({ stores, selectedStoreId, previousStoreId, onSele
       <h2 className="text-lg font-bold text-black">店舗を選択</h2>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <div className="mela-spinner" role="status">
-            <span className="sr-only">読み込み中</span>
-          </div>
-          <p className="text-sm text-[#606060]">読み込み中...</p>
+        <div className="grid gap-3" aria-label="読み込み中" role="status">
+          <span className="sr-only">読み込み中</span>
+          {Array.from({ length: 3 }, (_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       ) : stores.length === 0 ? (
         <div className="text-center py-12 space-y-3">
@@ -56,7 +57,7 @@ export function StoreSelector({ stores, selectedStoreId, previousStoreId, onSele
                   w-full text-left p-4 border-2 transition-all rounded-lg
                   min-h-[64px] active:scale-[0.98]
                   ${isSelected
-                    ? 'border-[#ff5000] bg-[#fff5f0]'
+                    ? 'border-[#ff5000] bg-[#fff5f0] animate-select-bounce'
                     : 'border-[#d9d9d9] bg-white hover:border-[#606060]'}
                 `}
               >
@@ -78,7 +79,7 @@ export function StoreSelector({ stores, selectedStoreId, previousStoreId, onSele
                     )}
                   </div>
                   {isSelected && (
-                    <div className="w-6 h-6 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                    <div className="w-6 h-6 bg-[#ff5000] rounded-full flex items-center justify-center flex-shrink-0 animate-check-pop" aria-hidden="true">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
