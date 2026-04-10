@@ -226,10 +226,7 @@ input:focus, textarea:focus, select:focus {
   inset: 0;
   background: rgba(255, 255, 255, 0.96);
   pointer-events: none;
-}
-.mela-bg-gym > * {
-  position: relative;
-  z-index: 1;
+  z-index: 0;
 }
 .mela-bg-training {
   background-image: url('/images/bg-training.webp');
@@ -244,10 +241,7 @@ input:focus, textarea:focus, select:focus {
   inset: 0;
   background: rgba(255, 255, 255, 0.95);
   pointer-events: none;
-}
-.mela-bg-training > * {
-  position: relative;
-  z-index: 1;
+  z-index: 0;
 }
 /* Marquee banner animation */
 @keyframes marquee {
@@ -403,9 +397,6 @@ input:focus, textarea:focus, select:focus {
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.95);
+  z-index: 0;
   pointer-events: none;
-}
-.mela-bg-training2 > * {
-  position: relative;
-  z-index: 1;
 }
