@@ -194,53 +194,53 @@ export default function BookingsPage() {
           <table className="w-full text-sm">
             <thead className="bg-[#f0f0f0]">
               <tr>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">日時</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">顧客</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">トレーナー</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060] hidden md:table-cell">店舗</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060] hidden sm:table-cell">種別</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">状態</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">操作</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060]">日時</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060]">顧客</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden md:table-cell">トレーナー</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden lg:table-cell">店舗</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden sm:table-cell">種別</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060]">状態</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060]">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0f0f0]">
               {filteredBookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-[#f0f0f0]">
-                  <td className="px-6 py-3 whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-3 whitespace-nowrap">
                     {format(new Date(booking.scheduled_at), 'M/d(E) HH:mm', { locale: ja })}
                   </td>
-                  <td className="px-6 py-3 font-medium">{booking.customer_name}</td>
-                  <td className="px-6 py-3">{booking.trainer_name}</td>
-                  <td className="px-6 py-3 hidden md:table-cell">{booking.store_name}</td>
-                  <td className="px-6 py-3 hidden sm:table-cell">
+                  <td className="px-3 md:px-6 py-3 font-medium">{booking.customer_name}</td>
+                  <td className="px-3 md:px-6 py-3 hidden md:table-cell">{booking.trainer_name}</td>
+                  <td className="px-3 md:px-6 py-3 hidden lg:table-cell">{booking.store_name}</td>
+                  <td className="px-3 md:px-6 py-3 hidden sm:table-cell">
                     <span className="text-xs">
                       {booking.booking_type === 'first_visit' ? '体験' : '通常'}
                     </span>
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-3 md:px-6 py-3">
                     <span className={`text-xs px-2 py-1 font-medium
                       ${statusLabels[booking.status]?.className ?? ''}`}>
                       {statusLabels[booking.status]?.label ?? booking.status}
                     </span>
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-3 md:px-6 py-3">
                     {booking.status === 'confirmed' && (
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-1 flex-wrap">
                         <button
                           onClick={() => handleStatusChange(booking.id, 'completed', booking.status)}
-                          className="text-xs text-[#22c55e] hover:text-[#16a34a] font-medium"
+                          className="text-xs text-[#22c55e] hover:text-[#16a34a] font-medium px-1.5 py-1 min-h-[32px]"
                         >
                           完了
                         </button>
                         <button
                           onClick={() => handleStatusChange(booking.id, 'no_show', booking.status)}
-                          className="text-xs text-[#ff5000] hover:text-[#e64800] font-medium"
+                          className="text-xs text-[#ff5000] hover:text-[#e64800] font-medium px-1.5 py-1 min-h-[32px]"
                         >
                           欠席
                         </button>
                         <button
                           onClick={() => handleCancel(booking.id)}
-                          className="text-xs text-[#ef4444] hover:text-[#dc2626] font-medium"
+                          className="text-xs text-[#ef4444] hover:text-[#dc2626] font-medium px-1.5 py-1 min-h-[32px]"
                         >
                           取消
                         </button>
@@ -251,7 +251,7 @@ export default function BookingsPage() {
               ))}
               {filteredBookings.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-[#606060]">
+                  <td colSpan={7} className="px-3 md:px-6 py-8 text-center text-[#606060]">
                     該当する予約がありません
                   </td>
                 </tr>
@@ -262,39 +262,39 @@ export default function BookingsPage() {
 
         {/* ページネーション */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[#d9d9d9]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 md:px-6 py-4 border-t border-[#d9d9d9]">
             <p className="text-sm text-[#606060]">
               {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, pagination.totalCount)} / {pagination.totalCount}件
             </p>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap justify-center">
               <button
                 onClick={() => setPage(1)}
                 disabled={page <= 1}
-                className="px-3 py-1.5 text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed hidden sm:block"
               >
                 最初
               </button>
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-2 min-h-[44px] text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 前へ
               </button>
-              <span className="px-3 py-1.5 text-sm text-black font-medium">
+              <span className="px-3 py-2 min-h-[44px] flex items-center text-sm text-black font-medium">
                 {page} / {pagination.totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                 disabled={page >= pagination.totalPages}
-                className="px-3 py-1.5 text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-2 min-h-[44px] text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 次へ
               </button>
               <button
                 onClick={() => setPage(pagination.totalPages)}
                 disabled={page >= pagination.totalPages}
-                className="px-3 py-1.5 text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm border border-[#d9d9d9] text-[#4d4d4d] hover:bg-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed hidden sm:block"
               >
                 最後
               </button>

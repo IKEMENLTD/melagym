@@ -60,10 +60,10 @@ export function StoreSelector({ stores, selectedStoreId, previousStoreId, onSele
                     : 'border-[#d9d9d9] bg-white hover:border-[#606060]'}
                 `}
               >
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className={`font-bold ${isSelected ? 'text-[#ff5000]' : 'text-black'}`}>
+                      <p className={`font-bold truncate ${isSelected ? 'text-[#ff5000]' : 'text-black'}`}>
                         {store.name}
                       </p>
                       {isPrevious && (
@@ -74,7 +74,7 @@ export function StoreSelector({ stores, selectedStoreId, previousStoreId, onSele
                     </div>
                     <p className="text-sm text-[#606060] mt-0.5">{store.area}</p>
                     {store.address && (
-                      <p className="text-xs text-[#909090] mt-0.5">{store.address}</p>
+                      <p className="text-xs text-[#909090] mt-0.5 truncate">{store.address}</p>
                     )}
                   </div>
                   {isSelected && (

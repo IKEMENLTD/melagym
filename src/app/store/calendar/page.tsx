@@ -158,7 +158,7 @@ export default function CalendarSettingsPage() {
       <h1 className="text-2xl font-bold text-black">カレンダー設定</h1>
 
       {/* Googleカレンダー連携状態 */}
-      <div className="bg-white border border-[#d9d9d9] rounded-lg p-6">
+      <div className="bg-white border border-[#d9d9d9] rounded-lg p-4 sm:p-6">
         <h2 className="font-bold text-black mb-3">Googleカレンダー連携</h2>
         {store.has_calendar_linked ? (
           <div className="flex items-center gap-3">
@@ -190,7 +190,7 @@ export default function CalendarSettingsPage() {
 
       {/* 営業時間設定 */}
       <div className="bg-white border border-[#d9d9d9] rounded-lg">
-        <div className="px-6 py-4 border-b border-[#d9d9d9]">
+        <div className="px-4 sm:px-6 py-4 border-b border-[#d9d9d9]">
           <h2 className="font-bold text-black">営業時間</h2>
         </div>
         <div className="divide-y divide-[#f0f0f0]">
@@ -200,7 +200,7 @@ export default function CalendarSettingsPage() {
             return (
               <div
                 key={day.key}
-                className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
               >
                 <div className="w-20 shrink-0">
                   <span className="text-sm font-medium text-black">
@@ -258,11 +258,11 @@ export default function CalendarSettingsPage() {
       )}
 
       {/* 保存ボタン */}
-      <div className="flex justify-end">
+      <div className="flex sm:justify-end">
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-8 py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)] disabled:opacity-50"
+          className="w-full sm:w-auto px-8 py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(255,80,0,0.4)] disabled:opacity-50"
         >
           {saving ? '保存中...' : '営業時間を保存'}
         </button>

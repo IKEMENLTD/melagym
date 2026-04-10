@@ -245,7 +245,7 @@ export default function TrainersPage() {
       {/* トレーナー追加モーダル */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-full max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
               <h2 className="font-bold text-black text-lg">トレーナー追加</h2>
               <button
@@ -339,12 +339,12 @@ export default function TrainersPage() {
                   <p>通常はトレーナーのGmailアドレスがそのままIDです</p>
                   <p className="pt-1.5 font-bold">トレーナー側で必要な共有設定:</p>
                   <p>Googleカレンダー →「設定と共有」→「特定のユーザーとの共有」に以下を追加:</p>
-                  <div className="flex items-center gap-1 bg-white border border-[#d9d9d9] px-2 py-1 mt-1">
-                    <span className="truncate flex-1 select-all text-[10px]">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
+                  <div className="flex items-center gap-1 bg-white border border-[#d9d9d9] px-2 py-1 mt-1 min-w-0">
+                    <span className="flex-1 select-all text-[10px] break-all min-w-0">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
                     <button
                       type="button"
                       onClick={() => { navigator.clipboard.writeText('melagym@instagram-generator-472905.iam.gserviceaccount.com'); }}
-                      className="text-[#ff5000] font-bold whitespace-nowrap"
+                      className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
                     >コピー</button>
                   </div>
                   <p>権限:「予定の表示（空き時間情報のみ）」</p>
@@ -428,29 +428,29 @@ export default function TrainersPage() {
           <table className="w-full text-sm">
             <thead className="bg-[#f0f0f0]">
               <tr>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">名前</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">専門</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060] hidden lg:table-cell">対応店舗</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060] hidden md:table-cell">カレンダー</th>
-                <th className="text-center px-6 py-3 font-medium text-[#606060]">初回対応</th>
-                <th className="text-center px-6 py-3 font-medium text-[#606060]">稼働</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060]">名前</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden sm:table-cell">専門</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden lg:table-cell">対応店舗</th>
+                <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden md:table-cell">カレンダー</th>
+                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">初回対応</th>
+                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">稼働</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0f0f0]">
               {trainers.map((trainer) => (
                 <tr key={trainer.id} className={`hover:bg-[#f0f0f0] ${!trainer.is_active ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-3">
+                  <td className="px-3 md:px-6 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-[#f0f0f0] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#606060]">
                         {trainer.name.charAt(0)}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-medium text-black">{trainer.name}</p>
-                        <p className="text-xs text-[#606060]">{trainer.email}</p>
+                        <p className="text-xs text-[#606060] truncate">{trainer.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-3 md:px-6 py-3 hidden sm:table-cell">
                     <div className="flex gap-1 flex-wrap">
                       {trainer.specialties.map((s) => (
                         <span key={s} className="text-xs bg-[#f0f0f0] text-[#4d4d4d] px-2 py-0.5">
@@ -459,19 +459,19 @@ export default function TrainersPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-3 hidden lg:table-cell">
+                  <td className="px-3 md:px-6 py-3 hidden lg:table-cell">
                     <p className="text-xs text-[#606060]">
                       {trainer.stores?.map((s) => s.store_name).join(', ') || '-'}
                     </p>
                   </td>
-                  <td className="px-6 py-3 hidden md:table-cell">
+                  <td className="px-3 md:px-6 py-3 hidden md:table-cell">
                     {trainer.google_calendar_id ? (
                       <span className="text-xs text-[#22c55e] font-medium">連携済み</span>
                     ) : (
                       <span className="text-xs text-[#ef4444] font-medium">未連携</span>
                     )}
                   </td>
-                  <td className="px-6 py-3 text-center">
+                  <td className="px-3 md:px-6 py-3 text-center">
                     {togglingIds.has(`fv-${trainer.id}`) ? (
                       <div className="flex justify-center"><div className="mela-spinner-sm" /></div>
                     ) : (
@@ -486,7 +486,7 @@ export default function TrainersPage() {
                       </button>
                     )}
                   </td>
-                  <td className="px-6 py-3 text-center">
+                  <td className="px-3 md:px-6 py-3 text-center">
                     {togglingIds.has(`ac-${trainer.id}`) ? (
                       <div className="flex justify-center"><div className="mela-spinner-sm" /></div>
                     ) : (
@@ -505,7 +505,7 @@ export default function TrainersPage() {
               ))}
               {trainers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-[#606060]">
+                  <td colSpan={6} className="px-3 md:px-6 py-8 text-center text-[#606060]">
                     トレーナーが登録されていません
                   </td>
                 </tr>

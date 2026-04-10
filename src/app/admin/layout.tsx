@@ -205,7 +205,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-[#4d4d4d] hover:text-black"
+              className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#4d4d4d] hover:text-black"
               aria-label="メニューを開く"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

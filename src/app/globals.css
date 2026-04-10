@@ -25,11 +25,17 @@
   --font-heading: 'Barlow Condensed', sans-serif;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Barlow Condensed for headings and logo */

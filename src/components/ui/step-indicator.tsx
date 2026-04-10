@@ -9,13 +9,13 @@ interface StepIndicatorProps {
 export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicatorProps) {
   return (
     <nav aria-label="予約ステップ">
-      <ol className="flex items-center justify-center gap-2 py-4 list-none m-0 p-0">
+      <ol className="flex items-center justify-center gap-1 sm:gap-2 py-4 list-none m-0 p-0">
         {steps.map((label, i) => {
           const isActive = i === currentStep;
           const isCompleted = i < currentStep;
           const stepStatus = isCompleted ? '完了' : isActive ? '現在' : '未完了';
           return (
-            <li key={label} className="flex items-center gap-2">
+            <li key={label} className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 className={`flex flex-col items-center ${isCompleted && onStepClick ? 'cursor-pointer' : 'cursor-default'}`}
@@ -26,7 +26,7 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
               >
                 <div
                   className={`
-                    w-8 h-8 flex items-center justify-center text-sm font-bold
+                    w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-bold
                     transition-colors duration-200
                     ${isCompleted ? 'bg-[#ff5000] text-white' : ''}
                     ${isActive ? 'bg-[#ff5000] text-white' : ''}
@@ -51,7 +51,7 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
               </button>
               {i < steps.length - 1 && (
                 <div
-                  className={`w-8 h-0.5 mb-5 ${
+                  className={`w-4 sm:w-8 h-0.5 mb-5 ${
                     i < currentStep ? 'bg-[#ff5000]' : 'bg-[#d9d9d9]'
                   }`}
                   aria-hidden="true"

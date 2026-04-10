@@ -106,8 +106,8 @@ export default function AdminDashboard() {
             { label: 'トレーナー', path: '/trainer' },
             { label: '店舗管理', path: '/store' },
           ].map((item) => (
-            <div key={item.path} className="flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg">
-              <span className="text-[#606060] truncate flex-1">{item.label}: {baseUrl}{item.path}</span>
+            <div key={item.path} className="flex items-center gap-2 bg-white border border-[#d9d9d9] px-3 py-2 rounded-lg min-w-0">
+              <span className="text-[#606060] truncate flex-1 min-w-0">{item.label}: {baseUrl}{item.path}</span>
               <button
                 onClick={() => navigator.clipboard.writeText(`${baseUrl}${item.path}`)}
                 className="text-[#ff5000] font-bold whitespace-nowrap hover:underline"
@@ -138,29 +138,29 @@ export default function AdminDashboard() {
           <table className="w-full text-sm">
             <thead className="bg-[#f0f0f0]">
               <tr>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">日時</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">顧客</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">トレーナー</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">店舗</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">種別</th>
-                <th className="text-left px-6 py-3 font-medium text-[#606060]">状態</th>
+                <th className="text-left px-4 md:px-6 py-3 font-medium text-[#606060]">日時</th>
+                <th className="text-left px-4 md:px-6 py-3 font-medium text-[#606060]">顧客</th>
+                <th className="text-left px-4 md:px-6 py-3 font-medium text-[#606060] hidden md:table-cell">トレーナー</th>
+                <th className="text-left px-4 md:px-6 py-3 font-medium text-[#606060] hidden lg:table-cell">店舗</th>
+                <th className="text-left px-4 md:px-6 py-3 font-medium text-[#606060] hidden sm:table-cell">種別</th>
+                <th className="text-left px-4 md:px-6 py-3 font-medium text-[#606060]">状態</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0f0f0]">
               {recentBookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-[#f0f0f0]">
-                  <td className="px-6 py-3 whitespace-nowrap">
+                  <td className="px-4 md:px-6 py-3 whitespace-nowrap">
                     {format(new Date(booking.scheduled_at), 'M/d HH:mm', { locale: ja })}
                   </td>
-                  <td className="px-6 py-3">{booking.customer_name}</td>
-                  <td className="px-6 py-3">{booking.trainer_name}</td>
-                  <td className="px-6 py-3">{booking.store_name}</td>
-                  <td className="px-6 py-3">
+                  <td className="px-4 md:px-6 py-3">{booking.customer_name}</td>
+                  <td className="px-4 md:px-6 py-3 hidden md:table-cell">{booking.trainer_name}</td>
+                  <td className="px-4 md:px-6 py-3 hidden lg:table-cell">{booking.store_name}</td>
+                  <td className="px-4 md:px-6 py-3 hidden sm:table-cell">
                     <span className="text-xs">
                       {booking.booking_type === 'first_visit' ? '体験' : '通常'}
                     </span>
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-4 md:px-6 py-3">
                     <span className={`text-xs px-2 py-1 font-medium
                       ${statusLabels[booking.status]?.className ?? ''}`}>
                       {statusLabels[booking.status]?.label ?? booking.status}
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
               ))}
               {recentBookings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-[#606060]">
+                  <td colSpan={6} className="px-4 md:px-6 py-8 text-center text-[#606060]">
                     予約データがありません
                   </td>
                 </tr>

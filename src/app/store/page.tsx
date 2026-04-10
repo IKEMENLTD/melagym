@@ -197,7 +197,7 @@ export default function StoreDashboard() {
               <p className={`text-xs font-medium ${card.text} opacity-70`}>
                 {card.label}
               </p>
-              <p className={`text-2xl font-bold mt-1 ${card.text}`}>
+              <p className={`text-xl sm:text-2xl font-bold mt-1 ${card.text} break-all`}>
                 {card.value}
               </p>
               {card.subtitle && (
@@ -223,19 +223,19 @@ export default function StoreDashboard() {
 
       {/* 対応トレーナー一覧 */}
       <div className="bg-white border border-[#d9d9d9] rounded-lg">
-        <div className="px-6 py-4 border-b border-[#d9d9d9]">
+        <div className="px-4 sm:px-6 py-4 border-b border-[#d9d9d9]">
           <h2 className="font-bold text-black">対応トレーナー</h2>
         </div>
         <div className="divide-y divide-[#f0f0f0]">
           {data.trainers.length === 0 ? (
-            <div className="px-6 py-8 text-center text-[#606060]">
+            <div className="px-4 sm:px-6 py-8 text-center text-[#606060]">
               トレーナーが登録されていません
             </div>
           ) : (
             data.trainers.map((trainer) => (
               <div
                 key={trainer.id}
-                className="px-6 py-4 flex items-center gap-4"
+                className="px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4"
               >
                 <div className="w-10 h-10 bg-[#f0f0f0] rounded-full flex items-center justify-center text-sm font-bold text-[#4d4d4d] shrink-0">
                   {trainer.name.charAt(0)}

@@ -130,21 +130,21 @@ export default function TrainerSchedule() {
       <h1 className="text-xl font-bold text-[#000000]">スケジュール</h1>
 
       {/* 週ナビゲーション */}
-      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-[#d9d9d9]">
+      <div className="flex items-center justify-between bg-white p-2 sm:p-3 rounded-lg border border-[#d9d9d9]">
         <button
           onClick={goToPreviousWeek}
-          className="p-2 hover:bg-[#f0f0f0] rounded-lg transition-colors"
+          className="p-2.5 hover:bg-[#f0f0f0] rounded-lg transition-colors shrink-0"
           aria-label="前の週"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <div className="text-center">
-          <p className="text-sm font-bold text-[#000000]">
-            {format(currentWeekStart, 'yyyy年M月d日', { locale: ja })}
+        <div className="text-center min-w-0">
+          <p className="text-xs sm:text-sm font-bold text-[#000000]">
+            {format(currentWeekStart, 'M/d', { locale: ja })}
             {' - '}
-            {format(weekEnd, 'M月d日', { locale: ja })}
+            {format(weekEnd, 'M/d', { locale: ja })}
           </p>
           <button
             onClick={goToThisWeek}
@@ -155,7 +155,7 @@ export default function TrainerSchedule() {
         </div>
         <button
           onClick={goToNextWeek}
-          className="p-2 hover:bg-[#f0f0f0] rounded-lg transition-colors"
+          className="p-2.5 hover:bg-[#f0f0f0] rounded-lg transition-colors shrink-0"
           aria-label="次の週"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -250,7 +250,7 @@ export default function TrainerSchedule() {
                             </svg>
                           </div>
                           {isExpanded && (
-                            <div className="px-2 pb-2 space-y-1 border-t border-[#f0f0f0] pt-2 ml-[calc(90px+12px)]">
+                            <div className="px-2 pb-2 space-y-1 border-t border-[#f0f0f0] pt-2 sm:ml-[calc(90px+12px)]">
                               {booking.customer_phone && (
                                 <div className="flex items-center gap-2 text-xs text-[#4d4d4d]">
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

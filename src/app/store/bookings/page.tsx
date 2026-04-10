@@ -99,8 +99,8 @@ export default function StoreBookingsPage() {
 
       {/* フィルター */}
       <div className="bg-white border border-[#d9d9d9] rounded-lg p-4">
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="w-full sm:flex-1">
             <label className="block text-xs text-[#606060] mb-1">日付</label>
             <input
               type="date"
@@ -109,7 +109,7 @@ export default function StoreBookingsPage() {
               className="w-full px-3 py-2 border border-[#d9d9d9] text-sm text-[#4d4d4d]"
             />
           </div>
-          <div className="flex-1">
+          <div className="w-full sm:flex-1">
             <label className="block text-xs text-[#606060] mb-1">
               ステータス
             </label>
@@ -125,10 +125,10 @@ export default function StoreBookingsPage() {
               <option value="no_show">無断欠席</option>
             </select>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={handleTodayFilter}
-              className={`px-4 py-2 text-sm font-bold rounded-full transition-colors ${
+              className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-full transition-colors ${
                 dateFilter === getToday()
                   ? 'bg-[#ff5000] text-black shadow-[0_4px_20px_rgba(255,80,0,0.4)]'
                   : 'bg-[#fff5f0] text-[#ff5000] hover:bg-[#ffe8db]'
@@ -138,13 +138,13 @@ export default function StoreBookingsPage() {
             </button>
             <button
               onClick={handleFilterApply}
-              className="px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+              className="flex-1 sm:flex-none px-4 py-2 bg-[#ff5000] text-black text-sm font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
             >
               検索
             </button>
             <button
               onClick={handleFilterReset}
-              className="px-4 py-2 bg-[#f0f0f0] text-[#4d4d4d] text-sm font-bold rounded-full hover:bg-[#d9d9d9] transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 bg-[#f0f0f0] text-[#4d4d4d] text-sm font-bold rounded-full hover:bg-[#d9d9d9] transition-colors"
             >
               リセット
             </button>
@@ -171,25 +171,25 @@ export default function StoreBookingsPage() {
       ) : (
         <div className="bg-white border border-[#d9d9d9] rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-[#f0f0f0]">
                 <tr>
-                  <th className="text-left px-6 py-3 font-medium text-[#606060]">
+                  <th className="text-left px-3 sm:px-6 py-3 font-medium text-[#606060] whitespace-nowrap">
                     日時
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-[#606060]">
+                  <th className="text-left px-3 sm:px-6 py-3 font-medium text-[#606060] whitespace-nowrap">
                     顧客
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-[#606060]">
+                  <th className="text-left px-3 sm:px-6 py-3 font-medium text-[#606060] whitespace-nowrap">
                     トレーナー
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-[#606060]">
+                  <th className="text-left px-3 sm:px-6 py-3 font-medium text-[#606060] whitespace-nowrap">
                     種別
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-[#606060]">
+                  <th className="text-left px-3 sm:px-6 py-3 font-medium text-[#606060] whitespace-nowrap">
                     時間
                   </th>
-                  <th className="text-left px-6 py-3 font-medium text-[#606060]">
+                  <th className="text-left px-3 sm:px-6 py-3 font-medium text-[#606060] whitespace-nowrap">
                     状態
                   </th>
                 </tr>
@@ -197,26 +197,26 @@ export default function StoreBookingsPage() {
               <tbody className="divide-y divide-[#f0f0f0]">
                 {bookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-[#f0f0f0]">
-                    <td className="px-6 py-3 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-3 whitespace-nowrap">
                       {format(new Date(booking.scheduled_at), 'M/d (E) HH:mm', {
                         locale: ja,
                       })}
                     </td>
-                    <td className="px-6 py-3">{booking.customer_name}</td>
-                    <td className="px-6 py-3">{booking.trainer_name}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 sm:px-6 py-3 whitespace-nowrap">{booking.customer_name}</td>
+                    <td className="px-3 sm:px-6 py-3 whitespace-nowrap">{booking.trainer_name}</td>
+                    <td className="px-3 sm:px-6 py-3">
                       <span className="text-xs">
                         {booking.booking_type === 'first_visit' ? '体験' : '通常'}
                       </span>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 sm:px-6 py-3">
                       <span className="text-xs text-[#606060]">
                         {booking.duration_minutes}分
                       </span>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 sm:px-6 py-3">
                       <span
-                        className={`text-xs px-2 py-1 font-medium ${
+                        className={`text-xs px-2 py-1 font-medium whitespace-nowrap ${
                           statusLabels[booking.status]?.className ?? ''
                         }`}
                       >
@@ -229,7 +229,7 @@ export default function StoreBookingsPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 py-12 text-center"
+                      className="px-3 sm:px-6 py-12 text-center"
                     >
                       <p className="text-[#606060] font-medium">
                         {hasActiveFilter

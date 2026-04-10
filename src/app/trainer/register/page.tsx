@@ -55,7 +55,7 @@ export default function TrainerRegisterPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center p-4">
-        <div className="bg-white p-8 w-full max-w-sm space-y-4 shadow-sm rounded-lg text-center">
+        <div className="bg-white p-6 sm:p-8 w-full max-w-sm space-y-4 shadow-sm rounded-lg text-center">
           <div className="flex justify-center">
             <Image src="/images/mela-logo-dark.svg" alt="mela gym" width={140} height={79} />
           </div>
@@ -86,7 +86,7 @@ export default function TrainerRegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="bg-white p-8 w-full max-w-sm space-y-4 shadow-sm rounded-lg">
+      <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 w-full max-w-sm space-y-4 shadow-sm rounded-lg">
         <div className="flex justify-center">
           <Image src="/images/mela-logo-dark.svg" alt="mela gym" width={140} height={79} />
         </div>

@@ -161,19 +161,21 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-4 bg-[#ff5000] text-black font-bold text-base rounded-full
-          disabled:opacity-50 hover:bg-[#e64800] hover:scale-[1.02] active:bg-[#e64800] transition-all min-h-[56px] tracking-wider"
-      >
-        {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="mela-spinner-sm" />
-            処理中...
-          </span>
-        ) : '予約を確定する'}
-      </button>
+      <div className="sticky bottom-0 bg-white pt-3 pb-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 bg-[#ff5000] text-black font-bold text-base rounded-full
+            disabled:opacity-50 hover:bg-[#e64800] hover:scale-[1.02] active:bg-[#e64800] transition-all min-h-[56px] tracking-wider"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="mela-spinner-sm" />
+              処理中...
+            </span>
+          ) : '予約を確定する'}
+        </button>
+      </div>
     </form>
   );
 }

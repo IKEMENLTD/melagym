@@ -33,7 +33,7 @@ export default function Home() {
           {/* CTA - First visit */}
           <div className="w-full flex flex-col items-center space-y-2">
             <div className="relative">
-              <div className="bg-white text-black text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">
+              <div className="bg-white text-black text-sm font-bold px-4 py-1.5 rounded-full shadow-lg">
                 今なら無料!
               </div>
               <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-white" />
@@ -41,7 +41,7 @@ export default function Home() {
 
             <Link
               href="/booking?type=first_visit"
-              className="block w-full max-w-xs py-4 px-8 bg-[#ff5000] text-black text-center font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] active:scale-[0.98] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[56px] flex items-center justify-center"
+              className="w-full max-w-xs py-4 px-8 bg-[#ff5000] text-black text-center font-bold rounded-full hover:bg-[#e64800] hover:scale-[1.02] active:scale-[0.98] transition-all tracking-wider text-xl shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[56px] flex items-center justify-center"
             >
               体験セッションの予約
             </Link>
@@ -54,7 +54,7 @@ export default function Home() {
           <div className="w-full flex flex-col items-center space-y-2">
             <Link
               href="/booking?type=regular"
-              className="block w-full max-w-xs py-4 px-8 border-2 border-white/80 text-white text-center font-bold rounded-full hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98] transition-all tracking-wider text-lg min-h-[56px] flex items-center justify-center"
+              className="w-full max-w-xs py-4 px-8 border-2 border-white/80 text-white text-center font-bold rounded-full hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98] transition-all tracking-wider text-lg min-h-[56px] flex items-center justify-center"
             >
               2回目以降の予約
             </Link>

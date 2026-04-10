@@ -226,7 +226,7 @@ export default function StoresPage() {
       {/* 店舗追加モーダル */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-lg">
+          <div className="bg-white w-full max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
               <h2 className="font-bold text-black text-lg">店舗追加</h2>
               <button
@@ -299,12 +299,12 @@ export default function StoresPage() {
                   <p>3.「カレンダーの統合」→「カレンダーID」をコピー</p>
                   <p className="pt-1.5 font-bold">空き枠連携に必要な共有設定:</p>
                   <p>「特定のユーザーとの共有」に以下を追加:</p>
-                  <div className="flex items-center gap-1 bg-white border border-[#d9d9d9] px-2 py-1 mt-1">
-                    <span className="truncate flex-1 select-all text-[10px]">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
+                  <div className="flex items-center gap-1 bg-white border border-[#d9d9d9] px-2 py-1 mt-1 min-w-0">
+                    <span className="flex-1 select-all text-[10px] break-all min-w-0">melagym@instagram-generator-472905.iam.gserviceaccount.com</span>
                     <button
                       type="button"
                       onClick={() => { navigator.clipboard.writeText('melagym@instagram-generator-472905.iam.gserviceaccount.com'); }}
-                      className="text-[#ff5000] font-bold whitespace-nowrap"
+                      className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
                     >コピー</button>
                   </div>
                   <p>権限:「予定の表示（すべての予定の詳細）」</p>
@@ -340,7 +340,7 @@ export default function StoresPage() {
       {/* 編集モーダル */}
       {editingStore && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-lg">
+          <div className="bg-white w-full max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
               <h2 className="font-bold text-black text-lg">店舗編集</h2>
               <button

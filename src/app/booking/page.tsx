@@ -254,27 +254,27 @@ export default function BookingPage() {
               </p>
               {bookingResult.booking && (
                 <div className="bg-[#f0f0f0] p-4 rounded-lg text-left text-sm space-y-2 mb-6">
-                  <div className="flex justify-between">
-                    <span className="text-[#606060]">予約番号</span>
-                    <span className="font-medium font-mono text-xs">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-[#606060] shrink-0">予約番号</span>
+                    <span className="font-medium font-mono text-xs truncate">
                       {bookingResult.booking.id.slice(0, 8).toUpperCase()}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#606060]">日時</span>
-                    <span className="font-medium">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-[#606060] shrink-0">日時</span>
+                    <span className="font-medium truncate">
                       {format(new Date(bookingResult.booking.scheduled_at), 'M月d日(E) HH:mm', { locale: ja })}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#606060]">店舗</span>
-                    <span className="font-medium">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-[#606060] shrink-0">店舗</span>
+                    <span className="font-medium truncate">
                       {stores.find((s) => s.id === bookingResult.booking!.store_id)?.name}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#606060]">トレーナー</span>
-                    <span className="font-medium">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-[#606060] shrink-0">トレーナー</span>
+                    <span className="font-medium truncate">
                       {selectedTrainerId === 'auto'
                         ? `おまかせ${bookingResult.booking.trainer_id ? ` (${trainers.find((t) => t.id === bookingResult.booking!.trainer_id)?.name ?? '担当決定後にお知らせ'})` : ''}`
                         : selectedTrainerName}
@@ -449,26 +449,27 @@ export default function BookingPage() {
       {showRegularConfirm && selectedSlot && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={handleRegularCancel}>
           <div
-            className="bg-white w-full max-w-lg p-6 pb-8 space-y-4 animate-slide-up"
+            className="bg-white w-full max-w-lg p-6 space-y-4 animate-slide-up"
+            style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label="予約確認"
           >
             <h2 className="text-lg font-bold text-black">予約を確定しますか？</h2>
             <div className="bg-[#f0f0f0] p-4 text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-[#606060]">日時</span>
-                <span className="font-medium">
+              <div className="flex justify-between gap-2">
+                <span className="text-[#606060] shrink-0">日時</span>
+                <span className="font-medium truncate">
                   {format(new Date(selectedSlot.start), 'M月d日(E) HH:mm', { locale: ja })}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#606060]">店舗</span>
-                <span className="font-medium">{selectedStoreName}</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-[#606060] shrink-0">店舗</span>
+                <span className="font-medium truncate">{selectedStoreName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#606060]">トレーナー</span>
-                <span className="font-medium">{selectedTrainerName}</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-[#606060] shrink-0">トレーナー</span>
+                <span className="font-medium truncate">{selectedTrainerName}</span>
               </div>
             </div>
             <div className="flex gap-3">

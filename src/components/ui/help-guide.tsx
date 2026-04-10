@@ -42,7 +42,8 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
       {/* ? ボタン（右下固定） */}
       <button
         onClick={() => { setOpen(true); setCurrentStep(0); }}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#ff5000] text-black rounded-full shadow-[0_4px_20px_rgba(255,80,0,0.4)] hover:bg-[#e64800] hover:scale-110 transition-all flex items-center justify-center"
+        className="fixed right-4 z-50 w-14 h-14 bg-[#ff5000] text-black rounded-full shadow-[0_4px_20px_rgba(255,80,0,0.4)] hover:bg-[#e64800] hover:scale-110 transition-all flex items-center justify-center"
+        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="使い方ガイドを開く"
       >
         <span className="text-2xl font-bold">?</span>
@@ -50,7 +51,7 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
 
       {/* オーバーレイ + ガイドモーダル */}
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           {/* 背景 */}
           <div
             className="absolute inset-0 bg-black/40"
@@ -67,7 +68,7 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="w-8 h-8 flex items-center justify-center text-black/60 hover:text-black"
+                className="w-10 h-10 flex items-center justify-center text-black/60 hover:text-black min-w-[44px] min-h-[44px]"
                 aria-label="閉じる"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -113,14 +114,14 @@ export function HelpGuide({ steps, pageTitle }: HelpGuideProps) {
               {currentStep > 0 && (
                 <button
                   onClick={prev}
-                  className="flex-1 py-3 border border-[#d9d9d9] text-[#4d4d4d] font-medium rounded-full hover:bg-[#f0f0f0] transition-colors"
+                  className="flex-1 py-3 border border-[#d9d9d9] text-[#4d4d4d] font-medium rounded-full hover:bg-[#f0f0f0] transition-colors min-h-[48px]"
                 >
                   戻る
                 </button>
               )}
               <button
                 onClick={next}
-                className="flex-1 py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)]"
+                className="flex-1 py-3 bg-[#ff5000] text-black font-bold rounded-full hover:bg-[#e64800] transition-colors shadow-[0_4px_20px_rgba(255,80,0,0.4)] min-h-[48px]"
               >
                 {currentStep < steps.length - 1 ? '次へ' : '閉じる'}
               </button>
