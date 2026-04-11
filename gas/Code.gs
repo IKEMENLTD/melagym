@@ -1287,8 +1287,11 @@ function addTrainer_(params) {
     return { success: false, error: 'トレーナー名は必須です' };
   }
 
-  // メールアドレス形式チェック
-  if (params.email && !isValidEmail_(params.email)) {
+  // メールアドレス必須 + 形式チェック
+  if (!params.email || typeof params.email !== 'string' || params.email.trim().length === 0) {
+    return { success: false, error: 'メールアドレスは必須です' };
+  }
+  if (!isValidEmail_(params.email)) {
     return { success: false, error: 'メールアドレスの形式が不正です' };
   }
 
