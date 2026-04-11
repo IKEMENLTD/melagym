@@ -31,6 +31,7 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
     return { success: false, error: '予約日時が無効です' };
   }
   if (new Date(req.slot_start) <= new Date()) {
+    console.error(`[createBooking:B3] slot_start=${req.slot_start}, now=${new Date().toISOString()}`);
     return { success: false, error: '過去の日時には予約できません' };
   }
   if (!req.store_id || typeof req.store_id !== 'string') {
@@ -75,7 +76,8 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
   const store = storesRes.stores.find((s) => s.id === req.store_id) ?? null;
 
   if (!trainer || !store) {
-    return { success: false, error: 'トレーナーまたは店舗が見つかりません' };
+    console.error(`[createBooking:B9] trainerId=${trainerId}, storeId=${req.store_id}, trainerFound=${!!trainer}, storeFound=${!!store}, totalTrainers=${trainersRes.trainers.length}, totalStores=${storesRes.stores.length}`);
+    return { success: false, error: `トレーナーまたは店舗が見つかりません (T:${!!trainer} S:${!!store})` };
   }
 
   // FreeBusy APIでリアルタイム空き確認
@@ -109,6 +111,7 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
     : [];
 
   if (trainerBusy.length > 0 || storeBusy.length > 0) {
+    console.error(`[createBooking:B12] slot=${req.slot_start}, trainerBusy=${trainerBusy.length}, storeBusy=${storeBusy.length}`);
     return { success: false, error: 'この時間枠は既に埋まっています。別の時間をお選びください' };
   }
 
@@ -225,15 +228,11 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
           console.error('Failed to rollback trainer calendar event:', trainerEventId);
         }
       }
-      console.error('Booking creation failed on GAS:', result.error);
-      // ダブルブッキングなどユーザーに伝えるべきエラーはそのまま返す
-      const userFacingErrors = ['既に予約済み', '予約を受け付けていません', '見つかりません', '過去の日時'];
-      const isUserError = userFacingErrors.some((msg) => result.error?.includes(msg));
+      console.error(`[createBooking:B14-GAS] GAS rejected booking: ${result.error}, trainerId=${trainerId}, storeId=${req.store_id}, slot=${req.slot_start}`);
+      // GASからのエラーメッセージをそのまま返す（ユーザーが原因を把握できるように）
       return {
         success: false,
-        error: isUserError
-          ? result.error!
-          : '予約の登録に失敗しました。時間をおいて再度お試しください',
+        error: result.error ?? '予約の登録に失敗しました。時間をおいて再度お試しください',
       };
     }
 
