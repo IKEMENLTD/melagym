@@ -15,9 +15,14 @@ export async function GET(request: NextRequest) {
     ok: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     detail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ? 'Set' : 'MISSING',
   };
+  const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ?? '';
+  const keyHasBegin = rawKey.includes('BEGIN PRIVATE KEY');
+  const keyHasNewlines = rawKey.includes('\n') || rawKey.includes('\\n');
   checks['google_key'] = {
-    ok: !!process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY,
-    detail: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ? 'Set' : 'MISSING',
+    ok: !!rawKey && keyHasBegin,
+    detail: rawKey
+      ? `Set (${rawKey.length}文字, BEGIN: ${keyHasBegin ? 'OK' : 'MISSING'}, 改行: ${keyHasNewlines ? 'OK' : 'MISSING'})`
+      : 'MISSING',
   };
   checks['gas_url'] = {
     ok: !!process.env.NEXT_PUBLIC_GAS_API_URL,

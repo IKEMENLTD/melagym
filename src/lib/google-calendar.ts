@@ -6,7 +6,9 @@ let calendarClient: calendar_v3.Calendar | null = null;
 function getCalendarClient(): calendar_v3.Calendar {
   if (!calendarClient) {
     const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    // 秘密鍵の改行処理: Netlify等では \\n（リテラル）か実際の改行かが環境依存
+    const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ?? '';
+    const privateKey = rawKey.includes('\\n') ? rawKey.replace(/\\n/g, '\n') : rawKey;
 
     // 環境変数の検証: 起動時に明確なエラーを出す
     if (!clientEmail) {

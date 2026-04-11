@@ -249,6 +249,8 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
       ...(warnings.length > 0 && { warnings }),
     };
   } catch (error) {
+    const errDetail = error instanceof Error ? `${error.message}\n${error.stack}` : String(error);
+    console.error('[createBooking] Unhandled error in booking flow:', errDetail);
     // rollback: clean up calendar events if they were created
     if (storeEventId && store.google_calendar_id) {
       try {
