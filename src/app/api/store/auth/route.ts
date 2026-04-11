@@ -11,7 +11,7 @@ interface StoreData {
   google_calendar_id: string;
   business_hours: Record<string, { open: string; close: string } | null>;
   is_active: boolean;
-  passcode?: string;
+  passcode_hash?: string;
 }
 
 interface GetStoresResponse {
@@ -84,46 +84,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // --- パスコード検証 ---
-    const storePasscode = result.store.passcode;
+    // passcode_hashが設定されている場合 → GAS側で検証
+    // 未設定 → 環境変数のデフォルトパスコードで検証
+    // どちらもない → 店舗名のみでログイン（段階的導入）
+    const hasHashedPasscode = result.store.passcode_hash && String(result.store.passcode_hash).trim() !== '';
     const defaultPasscode = process.env.STORE_DEFAULT_PASSCODE;
-    const expectedPasscode = storePasscode ?? defaultPasscode;
 
-    // 本番環境ではパスコードを必須とする
-    if (!expectedPasscode && process.env.NODE_ENV === 'production') {
-      console.warn(`[SECURITY] Store "${sanitizedName}" has no passcode configured`);
-      return NextResponse.json(
-        { error: 'この店舗はパスコードが未設定のためログインできません。管理者にお問い合わせください。' },
-        { status: 403 }
-      );
-    }
-
-    if (expectedPasscode) {
-      // パスコードが設定されている場合、必ず検証する
+    if (hasHashedPasscode) {
+      // GAS側のハッシュで検証
       if (!passcode || typeof passcode !== 'string') {
         return NextResponse.json(
           { error: 'パスコードを入力してください', requiresPasscode: true },
           { status: 401 }
         );
       }
-
-      // パスコード形式チェック (4-8桁の数字)
       if (!/^\d{4,8}$/.test(passcode)) {
         return NextResponse.json(
           { error: 'パスコードは4〜8桁の数字です', requiresPasscode: true },
           { status: 401 }
         );
       }
-
-      if (!safeCompare(passcode, expectedPasscode)) {
-        console.warn(
-          `[SECURITY] Store auth failed: incorrect passcode for store="${sanitizedName}"`
+      const verifyRes = await callGAS<{ success: boolean; error?: string }>('verifyStorePasscode', {
+        name: sanitizedName,
+        passcode,
+      });
+      if (!verifyRes.success) {
+        return NextResponse.json(
+          { error: 'パスコードが正しくありません', requiresPasscode: true },
+          { status: 401 }
         );
+      }
+    } else if (defaultPasscode) {
+      // 環境変数のデフォルトパスコードで検証
+      if (!passcode || typeof passcode !== 'string') {
+        return NextResponse.json(
+          { error: 'パスコードを入力してください', requiresPasscode: true },
+          { status: 401 }
+        );
+      }
+      if (!safeCompare(passcode, defaultPasscode)) {
         return NextResponse.json(
           { error: 'パスコードが正しくありません', requiresPasscode: true },
           { status: 401 }
         );
       }
     }
+    // どちらも未設定 → パスコード不要（店舗名のみでログイン）
 
     const isSecure = request.url.startsWith('https');
     const cookieOptions = {

@@ -104,10 +104,29 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'リクエストのJSON形式が不正です' }, { status: 400 });
   }
 
-  const { id, ...dirtyUpdates } = body;
+  const { id, passcode, ...dirtyUpdates } = body;
 
   if (!id || typeof id !== 'string') {
     return NextResponse.json({ error: 'IDは必須です' }, { status: 400 });
+  }
+
+  // パスコード設定（別途GAS関数で処理）
+  if (passcode && typeof passcode === 'string') {
+    if (!/^\d{4,8}$/.test(passcode)) {
+      return NextResponse.json({ error: 'パスコードは4〜8桁の数字で設定してください' }, { status: 400 });
+    }
+    try {
+      const pcResult = await callGAS<{ success: boolean; error?: string }>('setStorePasscode', {
+        store_id: id,
+        passcode,
+      });
+      if (!pcResult.success) {
+        return NextResponse.json({ error: pcResult.error ?? 'パスコードの設定に失敗しました' }, { status: 500 });
+      }
+    } catch (error) {
+      console.error('Failed to set store passcode:', error);
+      return NextResponse.json({ error: 'パスコードの設定に失敗しました' }, { status: 500 });
+    }
   }
 
   // プロトタイプ汚染対策 + ホワイトリストフィルタリング
@@ -119,8 +138,13 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
-  if (Object.keys(updates).length === 0) {
+  // パスコードのみの更新の場合はupdatesが空でもOK
+  if (Object.keys(updates).length === 0 && !passcode) {
     return NextResponse.json({ error: '更新する項目がありません' }, { status: 400 });
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ success: true });
   }
 
   try {

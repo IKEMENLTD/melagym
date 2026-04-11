@@ -13,14 +13,16 @@ interface StoreForm {
   google_calendar_id: string;
 }
 
-type EditStoreForm = StoreForm;
+interface EditStoreForm extends StoreForm {
+  passcode: string;
+}
 
 export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
-  const [editForm, setEditForm] = useState<EditStoreForm>({ name: '', area: '', address: '', google_calendar_id: '' });
+  const [editForm, setEditForm] = useState<EditStoreForm>({ name: '', area: '', address: '', google_calendar_id: '', passcode: '' });
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -62,6 +64,7 @@ export default function StoresPage() {
       area: store.area,
       address: store.address || '',
       google_calendar_id: store.google_calendar_id || '',
+      passcode: '',
     });
     setEditError(null);
   }
@@ -87,6 +90,7 @@ export default function StoresPage() {
           area: editForm.area.trim(),
           address: editForm.address.trim(),
           google_calendar_id: editForm.google_calendar_id.trim() || null,
+          ...(editForm.passcode.trim() && { passcode: editForm.passcode.trim() }),
         }),
       });
       if (!res.ok) {
@@ -448,6 +452,22 @@ export default function StoresPage() {
                   placeholder="example@group.calendar.google.com"
                 />
                 <p className="text-xs text-[#606060] mt-1">Googleカレンダー → 設定と共有 → カレンダーの統合 → カレンダーIDをコピー</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                  店舗パスコード
+                </label>
+                <input
+                  type="text"
+                  value={editForm.passcode}
+                  onChange={(e) => setEditForm((p) => ({ ...p, passcode: e.target.value.replace(/\D/g, '').slice(0, 8) }))}
+                  className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                  placeholder="4〜8桁の数字（空欄で変更なし）"
+                  inputMode="numeric"
+                  pattern="\d{4,8}"
+                />
+                <p className="text-xs text-[#606060] mt-1">店舗スタッフのログイン時に必要なパスコードです。空欄の場合は変更しません</p>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
