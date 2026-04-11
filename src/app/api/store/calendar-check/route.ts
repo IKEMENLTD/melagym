@@ -82,7 +82,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         ok: false,
         calendar_id_masked: maskedId,
         error_detail:
-          'カレンダーにアクセスできません。Googleカレンダーの共有設定でサービスアカウントに「予定の表示（すべての予定の詳細）」以上の権限を付与してください。',
+          'カレンダーにアクセスできません。Googleカレンダーの共有設定でサービスアカウントに「予定の変更」権限を付与してください。',
       };
       return NextResponse.json(result);
     }

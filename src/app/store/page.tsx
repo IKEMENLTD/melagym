@@ -199,7 +199,7 @@ export default function StoreDashboard() {
                       className="text-[#ff5000] font-bold text-xs whitespace-nowrap flex-shrink-0"
                     >コピー</button>
                   </div>
-                  <p className="mt-1 text-xs text-[#606060]">権限:「予定の表示（空き時間情報のみ）」</p>
+                  <p className="mt-1 text-xs text-[#606060]">権限:「予定の変更」を選択（予約がカレンダーに自動追加されます）</p>
                 </div>
               </div>
               <div className="flex gap-3">

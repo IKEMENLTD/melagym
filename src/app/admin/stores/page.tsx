@@ -358,7 +358,7 @@ export default function StoresPage() {
                       className="text-[#ff5000] font-bold whitespace-nowrap flex-shrink-0"
                     >{saCopied ? 'OK!' : 'コピー'}</button>
                   </div>
-                  <p>権限:「予定の表示（空き時間情報のみ）」</p>
+                  <p>権限:「予定の変更」を選択（予約がカレンダーに自動追加されます）</p>
                 </div>
               </div>
 
@@ -451,7 +451,7 @@ export default function StoresPage() {
                   className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
                   placeholder="example@group.calendar.google.com"
                 />
-                <p className="text-xs text-[#606060] mt-1">Googleカレンダー → 設定と共有 → カレンダーの統合 → カレンダーIDをコピー</p>
+                <p className="text-xs text-[#606060] mt-1">Googleカレンダー → 設定と共有 → カレンダーの統合 → カレンダーIDをコピー。共有設定でサービスアカウントに「予定の変更」権限を付与してください</p>
               </div>
 
               <div>
