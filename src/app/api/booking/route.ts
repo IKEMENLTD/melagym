@@ -161,6 +161,9 @@ export async function POST(request: NextRequest) {
 
     const result = await createBooking(bookingRequest);
 
+    if (!result.success) {
+      console.error('[POST /api/booking] Booking rejected:', result.error);
+    }
     return NextResponse.json(result, {
       status: result.success ? 200 : 409,
     });

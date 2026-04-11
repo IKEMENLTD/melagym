@@ -219,8 +219,11 @@ export default function BookingPage() {
           },
         }),
       });
-      if (!res.ok) throw new Error('予約の送信に失敗しました');
       const result: BookingResponse = await res.json();
+      if (!res.ok || !result.success) {
+        setApiError(result.error ?? '予約の送信に失敗しました。もう一度お試しください。');
+        return;
+      }
       setBookingResult(result);
     } catch {
       setApiError('予約の送信に失敗しました。もう一度お試しください。');
