@@ -77,7 +77,13 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
   if (store.google_calendar_id) calendarIds.push(store.google_calendar_id);
   if (trainer.google_calendar_id) calendarIds.push(trainer.google_calendar_id);
 
-  const busyMap = await getFreeBusy(calendarIds, req.slot_start, slotEnd);
+  let busyMap: Map<string, { start: string; end: string }[]>;
+  try {
+    busyMap = await getFreeBusy(calendarIds, req.slot_start, slotEnd);
+  } catch (freeBusyErr) {
+    console.error('FreeBusy API failed during booking:', freeBusyErr);
+    return { success: false, error: 'カレンダーの空き状況を確認できませんでした。しばらくしてからお試しください' };
+  }
 
   // FreeBusyレスポンスにリクエストしたカレンダーが含まれているか検証
   // 含まれていない場合、空き状況が不明なため安全のためブロック
@@ -290,7 +296,13 @@ async function autoAssignTrainer(
     .map((ts) => ts.trainer.google_calendar_id)
     .filter((id): id is string => id !== null);
 
-  const busyMap = await getFreeBusy(calendarIds, slotStart, slotEnd);
+  let busyMap: Map<string, { start: string; end: string }[]>;
+  try {
+    busyMap = await getFreeBusy(calendarIds, slotStart, slotEnd);
+  } catch {
+    console.error('FreeBusy API failed during auto-assign');
+    return null;
+  }
 
   // 空いているトレーナーを抽出
   const availableTrainers = activeTrainers.filter((ts) => {

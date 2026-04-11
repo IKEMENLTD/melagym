@@ -165,9 +165,19 @@ export async function POST(request: NextRequest) {
       status: result.success ? 200 : 409,
     });
   } catch (error) {
-    console.error('Booking failed:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('Booking failed:', errMsg, error);
+    // ユーザーに原因のヒントを返す（内部情報は隠す）
+    let userMessage = '予約処理中にエラーが発生しました';
+    if (errMsg.includes('カレンダー')) {
+      userMessage = 'カレンダー連携でエラーが発生しました。管理者にお問い合わせください';
+    } else if (errMsg.includes('環境変数') || errMsg.includes('設定されていません')) {
+      userMessage = 'サーバー設定に問題があります。管理者にお問い合わせください';
+    } else if (errMsg.includes('バックエンド') || errMsg.includes('GAS')) {
+      userMessage = 'バックエンドサービスに接続できませんでした。しばらくしてからお試しください';
+    }
     return NextResponse.json(
-      { success: false, error: '予約処理中にエラーが発生しました' },
+      { success: false, error: userMessage },
       { status: 500 }
     );
   }
