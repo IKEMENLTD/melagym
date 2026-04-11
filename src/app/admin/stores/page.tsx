@@ -245,7 +245,7 @@ export default function StoresPage() {
   }
 
   return (
-    <div className="space-y-6 mela-bg-training">
+    <div className="space-y-6 ">
       {/* 店舗ログインURL */}
       <div className="bg-[#fff5f0] border border-[#ff5000]/20 p-4 rounded-lg">
         <p className="text-sm font-bold text-black mb-2">店舗ログインURL</p>

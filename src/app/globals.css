@@ -212,21 +212,6 @@ input:focus, textarea:focus, select:focus {
   animation: slide-up 0.3s ease-out;
 }
 
-/* 薄い背景画像 - ほんのり見える程度(97-98%白) */
-.mela-bg-gym {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)),
-    url('/images/bg-gym-entrance.webp');
-  background-size: cover;
-  background-position: center;
-}
-.mela-bg-training {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)),
-    url('/images/bg-training.webp');
-  background-size: cover;
-  background-position: center;
-}
 /* Marquee banner animation */
 @keyframes marquee {
   0% { transform: translateX(0); }
@@ -369,10 +354,3 @@ input:focus, textarea:focus, select:focus {
   border-radius: 4px;
 }
 
-.mela-bg-training2 {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)),
-    url('/images/bg-training2.webp');
-  background-size: cover;
-  background-position: center;
-}

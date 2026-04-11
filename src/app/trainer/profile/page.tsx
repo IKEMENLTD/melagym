@@ -247,7 +247,7 @@ export default function TrainerProfile() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mela-bg-training2">
+    <div className="space-y-6 max-w-2xl ">
       <h1 className="text-xl font-bold text-[#000000]">プロフィール編集</h1>
 
       {/* トースト通知 */}

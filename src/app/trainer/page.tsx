@@ -270,7 +270,7 @@ export default function TrainerDashboard() {
   }
 
   return (
-    <div className="space-y-6 mela-bg-training2">
+    <div className="space-y-6 ">
       {/* ヘッダー */}
       <div>
         <h1 className="text-xl font-bold text-[#000000]">

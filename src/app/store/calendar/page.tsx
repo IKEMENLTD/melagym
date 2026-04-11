@@ -194,7 +194,7 @@ export default function CalendarSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 mela-bg-gym">
+    <div className="space-y-6 ">
       <h1 className="text-2xl font-bold text-black">カレンダー設定</h1>
 
       {/* Googleカレンダー連携状態 */}

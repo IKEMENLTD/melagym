@@ -94,7 +94,7 @@ export default function StoreBookingsPage() {
   const hasActiveFilter = dateFilter !== '' || statusFilter !== '';
 
   return (
-    <div className="space-y-6 mela-bg-gym">
+    <div className="space-y-6 ">
       <h1 className="text-2xl font-bold text-black">予約一覧</h1>
 
       {/* フィルター */}
