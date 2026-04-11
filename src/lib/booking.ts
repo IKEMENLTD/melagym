@@ -59,10 +59,17 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
   }
 
   // トレーナーと店舗の情報を取得
-  const [trainersRes, storesRes] = await Promise.all([
-    callGAS<{ trainers: Trainer[] }>('getTrainersFull', {}),
-    callGAS<{ stores: Store[] }>('getStores', {}),
-  ]);
+  let trainersRes: { trainers: Trainer[] };
+  let storesRes: { stores: Store[] };
+  try {
+    [trainersRes, storesRes] = await Promise.all([
+      callGAS<{ trainers: Trainer[] }>('getTrainersFull', {}),
+      callGAS<{ stores: Store[] }>('getStores', {}),
+    ]);
+  } catch (gasErr) {
+    console.error('[createBooking] Failed to fetch trainers/stores from GAS:', gasErr);
+    return { success: false, error: 'バックエンドサービスに接続できませんでした。しばらくしてからお試しください' };
+  }
 
   const trainer = trainersRes.trainers.find((t) => t.id === trainerId) ?? null;
   const store = storesRes.stores.find((s) => s.id === req.store_id) ?? null;
@@ -266,7 +273,7 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
         console.error('Failed to rollback trainer calendar event:', trainerEventId);
       }
     }
-    throw error;
+    return { success: false, error: '予約処理中にエラーが発生しました。しばらくしてからお試しください' };
   }
 }
 
@@ -278,6 +285,7 @@ async function autoAssignTrainer(
   durationMinutes: number,
   firstVisitOnly: boolean = false
 ): Promise<string | null> {
+  try {
   const slotEnd = addMinutes(new Date(slotStart), durationMinutes).toISOString();
 
   // この店舗に対応可能なトレーナーを取得
@@ -345,6 +353,10 @@ async function autoAssignTrainer(
   }
 
   return selected;
+  } catch (err) {
+    console.error('[autoAssignTrainer] Error:', err);
+    return null;
+  }
 }
 
 // ---------- 予約キャンセル ----------
