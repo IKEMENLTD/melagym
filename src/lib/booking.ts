@@ -125,16 +125,17 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
   try {
     // Step 3a: 店舗カレンダーにイベント書込み
     if (store.google_calendar_id) {
-      storeEventId = await createCalendarEvent(
-        store.google_calendar_id,
-        eventSummary,
-        req.slot_start,
-        slotEnd,
-        eventDescription
-      );
-
-      if (!storeEventId) {
-        return { success: false, error: 'カレンダーへの登録に失敗しました。もう一度お試しください' };
+      try {
+        storeEventId = await createCalendarEvent(
+          store.google_calendar_id,
+          eventSummary,
+          req.slot_start,
+          slotEnd,
+          eventDescription
+        );
+      } catch (storeCalErr) {
+        // カレンダー書込み失敗は予約自体をブロックしない（権限不足の場合がある）
+        console.error('[createBooking:B13] Store calendar write failed:', store.google_calendar_id, storeCalErr);
       }
     }
 
@@ -157,30 +158,41 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
 
     // 顧客レコード作成/更新
     let customerId: string;
+    try {
+      if (req.customer.line_uid) {
+        const existing = await callGAS<{ customer: { id: string } | null }>(
+          'getCustomerByLineUid',
+          { line_uid: req.customer.line_uid }
+        );
 
-    if (req.customer.line_uid) {
-      const existing = await callGAS<{ customer: { id: string } | null }>(
-        'getCustomerByLineUid',
-        { line_uid: req.customer.line_uid }
-      );
-
-      if (existing.customer) {
-        customerId = existing.customer.id;
-        if (req.booking_type === 'first_visit') {
-          await callGAS('upsertCustomer', {
-            id: customerId,
+        if (existing.customer) {
+          customerId = existing.customer.id;
+          if (req.booking_type === 'first_visit') {
+            await callGAS('upsertCustomer', {
+              id: customerId,
+              data: {
+                name: req.customer.name,
+                email: req.customer.email,
+                phone: req.customer.phone,
+                age_group: req.customer.age_group,
+              },
+            });
+          }
+        } else {
+          const newCust = await callGAS<{ success: boolean; id: string }>('upsertCustomer', {
             data: {
-              name: req.customer.name,
+              line_uid: req.customer.line_uid,
+              name: req.customer.name ?? '',
               email: req.customer.email,
-              phone: req.customer.phone,
+              phone: req.customer.phone ?? '',
               age_group: req.customer.age_group,
             },
           });
+          customerId = newCust.id;
         }
       } else {
         const newCust = await callGAS<{ success: boolean; id: string }>('upsertCustomer', {
           data: {
-            line_uid: req.customer.line_uid,
             name: req.customer.name ?? '',
             email: req.customer.email,
             phone: req.customer.phone ?? '',
@@ -189,32 +201,31 @@ export async function createBooking(req: BookingRequest): Promise<BookingRespons
         });
         customerId = newCust.id;
       }
-    } else {
-      const newCust = await callGAS<{ success: boolean; id: string }>('upsertCustomer', {
-        data: {
-          name: req.customer.name ?? '',
-          email: req.customer.email,
-          phone: req.customer.phone ?? '',
-          age_group: req.customer.age_group,
-        },
-      });
-      customerId = newCust.id;
+    } catch (custErr) {
+      console.error('[createBooking:B15] Customer creation failed:', custErr);
+      return { success: false, error: '顧客情報の登録に失敗しました。しばらくしてからお試しください' };
     }
 
     // 予約作成（GAS側でLockServiceによるダブルブッキング防止）
-    const result = await callGAS<{ success: boolean; booking?: Booking; error?: string }>(
-      'createBooking',
-      {
-        customer_id: customerId,
-        trainer_id: trainerId,
-        store_id: req.store_id,
-        scheduled_at: req.slot_start,
-        duration_minutes: durationMinutes,
-        booking_type: req.booking_type,
-        google_calendar_event_id: storeEventId,
-        trainer_calendar_event_id: trainerEventId,
-      }
-    );
+    let result: { success: boolean; booking?: Booking; error?: string };
+    try {
+      result = await callGAS<{ success: boolean; booking?: Booking; error?: string }>(
+        'createBooking',
+        {
+          customer_id: customerId,
+          trainer_id: trainerId,
+          store_id: req.store_id,
+          scheduled_at: req.slot_start,
+          duration_minutes: durationMinutes,
+          booking_type: req.booking_type,
+          google_calendar_event_id: storeEventId,
+          trainer_calendar_event_id: trainerEventId,
+        }
+      );
+    } catch (gasErr) {
+      console.error('[createBooking:B16] GAS createBooking call failed:', gasErr);
+      return { success: false, error: 'バックエンドサービスへの予約登録に失敗しました。しばらくしてからお試しください' };
+    }
 
     if (!result.success) {
       // 予約失敗時はカレンダーイベントを削除
