@@ -93,6 +93,7 @@ export default function BookingsPage() {
     const statusLabelsMap: Record<string, string> = {
       completed: '完了',
       no_show: '無断欠席',
+      confirmed: '確定（復元）',
     };
     const label = statusLabelsMap[newStatus] ?? newStatus;
     if (!confirm(`この予約を「${label}」に変更しますか？`)) return;
@@ -224,6 +225,7 @@ export default function BookingsPage() {
                     </span>
                   </td>
                   <td className="px-3 md:px-6 py-3">
+                    {/* confirmed: 完了・欠席・取消 */}
                     {booking.status === 'confirmed' && (
                       <div className="flex gap-1 flex-wrap">
                         <button
@@ -245,6 +247,28 @@ export default function BookingsPage() {
                           取消
                         </button>
                       </div>
+                    )}
+                    {/* cancelled: 復元ボタン（confirmed に戻す） */}
+                    {booking.status === 'cancelled' && (
+                      <button
+                        onClick={() => handleStatusChange(booking.id, 'confirmed', booking.status)}
+                        className="text-xs text-[#3b82f6] hover:text-[#2563eb] font-medium px-1.5 py-1 min-h-[32px]"
+                      >
+                        復元
+                      </button>
+                    )}
+                    {/* no_show: 復元ボタン（confirmed に戻す） */}
+                    {booking.status === 'no_show' && (
+                      <button
+                        onClick={() => handleStatusChange(booking.id, 'confirmed', booking.status)}
+                        className="text-xs text-[#3b82f6] hover:text-[#2563eb] font-medium px-1.5 py-1 min-h-[32px]"
+                      >
+                        復元
+                      </button>
+                    )}
+                    {/* completed: 最終状態のため操作なし */}
+                    {booking.status === 'completed' && (
+                      <span className="text-xs text-[#a0a0a0]">--</span>
                     )}
                   </td>
                 </tr>

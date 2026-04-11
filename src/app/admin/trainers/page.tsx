@@ -47,6 +47,14 @@ export default function TrainersPage() {
   const [editStoreIds, setEditStoreIds] = useState<string[]>([]);
   const [editSaving, setEditSaving] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editSpecialties, setEditSpecialties] = useState('');
+  const [editCalendarId, setEditCalendarId] = useState('');
+  const [editHoursStart, setEditHoursStart] = useState('09:00');
+  const [editHoursEnd, setEditHoursEnd] = useState('21:00');
+  const [editError, setEditError] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -175,12 +183,68 @@ export default function TrainersPage() {
   function openEditStores(trainer: TrainerWithStores) {
     setEditingTrainer(trainer);
     setEditStoreIds(trainer.stores?.map((s) => s.store_id) ?? []);
+    setEditName(trainer.name);
+    setEditEmail(trainer.email ?? '');
+    setEditPhone(trainer.phone ?? '');
+    setEditSpecialties(trainer.specialties.join(', '));
+    setEditCalendarId(trainer.google_calendar_id ?? '');
+    setEditHoursStart(trainer.available_hours?.start ?? '09:00');
+    setEditHoursEnd(trainer.available_hours?.end ?? '21:00');
+    setEditError(null);
   }
 
   function toggleEditStore(storeId: string) {
     setEditStoreIds((prev) =>
       prev.includes(storeId) ? prev.filter((id) => id !== storeId) : [...prev, storeId]
     );
+  }
+
+  async function saveTrainerAll() {
+    if (!editingTrainer) return;
+    if (!editName.trim()) {
+      setEditError('名前は必須です');
+      return;
+    }
+    setEditError(null);
+    setEditSaving(true);
+    try {
+      // 1. トレーナー情報を更新
+      const patchRes = await adminFetch('/api/admin/trainers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingTrainer.id,
+          name: editName.trim(),
+          email: editEmail.trim(),
+          phone: editPhone.trim(),
+          specialties: editSpecialties.split(',').map((s) => s.trim()).filter(Boolean),
+          google_calendar_id: editCalendarId.trim() || null,
+          available_hours: { start: editHoursStart, end: editHoursEnd },
+        }),
+      });
+      if (!patchRes.ok) {
+        const patchResult = await patchRes.json();
+        setEditError(patchResult.error || 'トレーナー情報の更新に失敗しました');
+        return;
+      }
+      // 2. 店舗割当を更新
+      const storeRes = await adminFetch('/api/admin/trainers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateStores',
+          trainerId: editingTrainer.id,
+          storeIds: editStoreIds,
+        }),
+      });
+      if (!storeRes.ok) throw new Error();
+      setEditingTrainer(null);
+      loadData();
+    } catch {
+      setEditError('保存に失敗しました');
+    } finally {
+      setEditSaving(false);
+    }
   }
 
   async function saveTrainerStores() {
@@ -602,45 +666,145 @@ export default function TrainersPage() {
         </div>
       </div>
 
-      {/* 対応店舗 編集モーダル */}
+      {/* トレーナー編集モーダル */}
       {editingTrainer && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-[calc(100vw-2rem)] sm:max-w-sm">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9]">
+          <div className="bg-white w-full max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#d9d9d9] flex-shrink-0">
               <h2 className="font-bold text-black">
-                {editingTrainer.name} - 対応店舗
+                {editingTrainer.name} - 編集
               </h2>
               <button
                 onClick={() => setEditingTrainer(null)}
                 className="text-[#606060] hover:text-black text-xl"
               >x</button>
             </div>
-            <div className="p-6 space-y-4">
-              {stores.length === 0 ? (
-                <p className="text-sm text-[#606060]">店舗が登録されていません</p>
-              ) : (
-                <div className="space-y-2">
-                  {stores.map((store) => (
-                    <label key={store.id} className="flex items-center gap-3 p-2 border border-[#d9d9d9] cursor-pointer hover:bg-[#f0f0f0]">
-                      <input
-                        type="checkbox"
-                        checked={editStoreIds.includes(store.id)}
-                        onChange={() => toggleEditStore(store.id)}
-                        className="w-4 h-4 accent-[#ff5000]"
-                      />
-                      <span className="text-sm text-black">{store.name}</span>
-                      <span className="text-xs text-[#606060]">{store.area}</span>
-                    </label>
-                  ))}
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {editError && (
+                <div className="bg-[#fef2f2] text-[#ef4444] text-sm px-4 py-3">
+                  {editError}
                 </div>
               )}
+
+              {/* 基本情報セクション */}
+              <div>
+                <h3 className="text-sm font-bold text-black mb-3 pb-2 border-b border-[#d9d9d9]">基本情報</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
+                      名前 <span className="text-[#ef4444]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                      placeholder="山田 太郎"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4d4d4d] mb-1">メールアドレス</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                      placeholder="trainer@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4d4d4d] mb-1">電話番号</label>
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                      placeholder="090-1234-5678"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4d4d4d] mb-1">専門分野（カンマ区切り）</label>
+                    <input
+                      type="text"
+                      value={editSpecialties}
+                      onChange={(e) => setEditSpecialties(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                      placeholder="パーソナルトレーニング, ヨガ, ピラティス"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4d4d4d] mb-1">Google Calendar ID</label>
+                    <input
+                      type="text"
+                      value={editCalendarId}
+                      onChange={(e) => setEditCalendarId(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#d9d9d9] text-sm"
+                      placeholder="トレーナーのGmailアドレス or カレンダーID"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4d4d4d] mb-1">対応可能時間</label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={editHoursStart}
+                        onChange={(e) => setEditHoursStart(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-[#d9d9d9] text-sm"
+                      >
+                        {Array.from({ length: 15 }, (_, i) => {
+                          const hour = (9 + i).toString().padStart(2, '0');
+                          return (
+                            <option key={`start-${hour}`} value={`${hour}:00`}>{hour}:00</option>
+                          );
+                        })}
+                      </select>
+                      <span className="text-sm text-[#4d4d4d]">〜</span>
+                      <select
+                        value={editHoursEnd}
+                        onChange={(e) => setEditHoursEnd(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-[#d9d9d9] text-sm"
+                      >
+                        {Array.from({ length: 15 }, (_, i) => {
+                          const hour = (9 + i).toString().padStart(2, '0');
+                          return (
+                            <option key={`end-${hour}`} value={`${hour}:00`}>{hour}:00</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 対応店舗セクション */}
+              <div>
+                <h3 className="text-sm font-bold text-black mb-3 pb-2 border-b border-[#d9d9d9]">対応店舗</h3>
+                {stores.length === 0 ? (
+                  <p className="text-sm text-[#606060]">店舗が登録されていません</p>
+                ) : (
+                  <div className="space-y-2">
+                    {stores.map((store) => (
+                      <label key={store.id} className="flex items-center gap-3 p-2 border border-[#d9d9d9] cursor-pointer hover:bg-[#f0f0f0]">
+                        <input
+                          type="checkbox"
+                          checked={editStoreIds.includes(store.id)}
+                          onChange={() => toggleEditStore(store.id)}
+                          className="w-4 h-4 accent-[#ff5000]"
+                        />
+                        <span className="text-sm text-black">{store.name}</span>
+                        <span className="text-xs text-[#606060]">{store.area}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
                 <button
                   onClick={() => setEditingTrainer(null)}
                   className="flex-1 py-2.5 text-sm font-medium text-[#4d4d4d] bg-[#f0f0f0] rounded-full"
                 >キャンセル</button>
                 <button
-                  onClick={saveTrainerStores}
+                  onClick={saveTrainerAll}
                   disabled={editSaving}
                   className="flex-1 py-2.5 text-sm font-bold text-white bg-[#ff5000] rounded-full hover:bg-[#e64800] disabled:opacity-50"
                 >
