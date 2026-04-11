@@ -336,7 +336,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
         </header>
 
         <MarqueeBanner />
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+        <main className="flex-1 p-3 md:p-4">{children}</main>
       </div>
     </div>
   );
