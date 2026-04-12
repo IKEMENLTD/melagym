@@ -570,8 +570,14 @@ export default function TrainersPage() {
                 <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden sm:table-cell">専門</th>
                 <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden lg:table-cell">対応店舗</th>
                 <th className="text-left px-3 md:px-6 py-3 font-medium text-[#606060] hidden md:table-cell">カレンダー</th>
-                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">初回対応</th>
-                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">稼働</th>
+                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">
+                  <span>初回対応</span>
+                  <span className="block text-[10px] font-normal text-[#909090]">体験予約の受付</span>
+                </th>
+                <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">
+                  <span>稼働</span>
+                  <span className="block text-[10px] font-normal text-[#909090]">OFFで予約停止</span>
+                </th>
                 <th className="text-center px-3 md:px-6 py-3 font-medium text-[#606060]">操作</th>
               </tr>
             </thead>

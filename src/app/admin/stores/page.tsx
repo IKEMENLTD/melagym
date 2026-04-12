@@ -456,7 +456,7 @@ export default function StoresPage() {
 
               <div>
                 <label className="block text-sm font-medium text-[#4d4d4d] mb-1">
-                  店舗パスコード
+                  店舗スタッフ用ログインパスコード (任意)
                 </label>
                 <input
                   type="text"
@@ -467,7 +467,7 @@ export default function StoresPage() {
                   inputMode="numeric"
                   pattern="\d{4,8}"
                 />
-                <p className="text-xs text-[#606060] mt-1">店舗スタッフのログイン時に必要なパスコードです。空欄の場合は変更しません</p>
+                <p className="text-xs text-[#606060] mt-1">店舗スタッフがログインする際に必要なパスコードです。未設定の場合は店舗名のみでログインできます。セキュリティ向上のため設定を推奨します</p>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-[#d9d9d9]">
@@ -505,10 +505,15 @@ export default function StoresPage() {
                 <h3 className="font-bold text-black text-lg">{store.name}</h3>
                 <p className="text-sm text-[#606060]">{store.area}</p>
               </div>
-              <span className={`text-xs px-2 py-1 font-medium
-                ${store.is_active ? 'bg-[#f0fdf4] text-[#22c55e]' : 'bg-[#f0f0f0] text-[#606060]'}`}>
-                {store.is_active ? '稼働中' : '停止中'}
-              </span>
+              <div className="text-right">
+                <span className={`text-xs px-2 py-1 font-medium
+                  ${store.is_active ? 'bg-[#f0fdf4] text-[#22c55e]' : 'bg-[#f0f0f0] text-[#606060]'}`}>
+                  {store.is_active ? '稼働中' : '停止中'}
+                </span>
+                {!store.is_active && (
+                  <p className="text-[10px] text-[#ef4444]">予約受付を停止中</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2 text-sm">

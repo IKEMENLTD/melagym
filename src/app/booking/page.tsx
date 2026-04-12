@@ -304,7 +304,16 @@ export default function BookingPage() {
                   </div>
                 </div>
               )}
-              <div className="space-y-3">
+              <div className="mt-6 bg-[#f8f8f8] p-4 rounded-lg text-left text-sm space-y-2">
+                <p className="font-bold text-black">ご来店の準備</p>
+                <ul className="space-y-1.5 text-[#4d4d4d]">
+                  <li>- 予約時間の5分前にお越しください</li>
+                  <li>- 動きやすい服装でお越しください</li>
+                  <li>- タオル・お飲み物をご持参ください</li>
+                  <li>- ご不明な点はお気軽にお問い合わせください</li>
+                </ul>
+              </div>
+              <div className="space-y-3 mt-6">
                 <a
                   href="https://line.me/R/ti/p/@melagym"
                   className="block w-full py-3 bg-[#06C755] text-white font-bold text-center min-h-[48px] rounded-full hover:opacity-90 transition-opacity tracking-wider leading-[24px]"

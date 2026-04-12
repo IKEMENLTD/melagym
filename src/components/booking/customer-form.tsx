@@ -123,7 +123,7 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
       {/* メールアドレス */}
       <div>
         <label htmlFor="customer-email" className="block text-sm font-medium text-[#4d4d4d] mb-1">
-          メールアドレス
+          メールアドレス <span className="text-[#999]">(任意)</span>
         </label>
         <input
           id="customer-email"
@@ -143,13 +143,13 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
 
       {/* 年代 */}
       <div>
-        <label className="block text-sm font-medium text-[#4d4d4d] mb-1">年代</label>
+        <label className="block text-sm font-medium text-[#4d4d4d] mb-1">年代 <span className="text-[#999]">(任意)</span></label>
         <div className="grid grid-cols-3 gap-2">
           {AGE_GROUPS.map((ag) => (
             <button
               key={ag}
               type="button"
-              onClick={() => setAgeGroup(ag)}
+              onClick={() => setAgeGroup(ageGroup === ag ? '' : ag)}
               className={`py-2.5 border text-sm font-medium transition-colors min-h-[44px]
                 ${ageGroup === ag
                   ? 'bg-[#ff5000] text-white border-[#ff5000]'
@@ -158,6 +158,16 @@ export function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
               {ag}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setAgeGroup('')}
+            className={`py-2.5 border text-sm font-medium transition-colors min-h-[44px]
+              ${ageGroup === ''
+                ? 'bg-[#ff5000] text-white border-[#ff5000]'
+                : 'bg-white text-[#4d4d4d] border-[#d9d9d9] active:bg-[#f0f0f0]'}`}
+          >
+            回答しない
+          </button>
         </div>
       </div>
 
