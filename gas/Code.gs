@@ -1734,14 +1734,30 @@ function authenticateTrainer_(params) {
     return { success: false, error: 'メールアドレスまたはパスワードが無効です' };
   }
 
-  // パスワードが設定されている場合は検証必須
+  // パスワード検証
   var storedHash = trainerRow.password_hash;
-  if (storedHash && String(storedHash).trim() !== '') {
+  var hasPassword = storedHash && String(storedHash).trim() !== '';
+
+  if (hasPassword) {
+    // パスワード設定済み → 検証必須
     if (!password || !verifyPassword_(password, String(storedHash))) {
       return { success: false, error: 'メールアドレスまたはパスワードが無効です' };
     }
+  } else {
+    // パスワード未設定 → パスワードが入力された場合は自動設定
+    if (password && typeof password === 'string' && password.length >= 8) {
+      var newHash = hashPassword_(password);
+      updateRowById_('trainers', trainer.id, {
+        password_hash: newHash,
+        updated_at: new Date().toISOString(),
+      });
+      invalidateCache_('trainers');
+    } else if (password) {
+      // パスワードが入力されたが短すぎる
+      return { success: false, error: 'パスワードは8文字以上で設定してください' };
+    }
+    // パスワード未入力 → メールのみでログイン（初回のみ許可）
   }
-  // パスワード未設定の場合は従来通りメールのみで通す（段階的移行）
 
   return {
     success: true,
@@ -1750,7 +1766,7 @@ function authenticateTrainer_(params) {
       name: trainer.name,
       email: trainer.email,
     },
-    requiresPasswordSetup: !storedHash || String(storedHash).trim() === '',
+    requiresPasswordSetup: !hasPassword && (!password || password.length < 8),
   };
 }
 

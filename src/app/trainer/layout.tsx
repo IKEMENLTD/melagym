@@ -92,6 +92,12 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
         return;
       }
 
+      // パスワード未設定の場合、設定を促す
+      if (data.requiresPasswordSetup && !passwordInput) {
+        setAuthError('初回ログインです。セキュリティのためパスワード（8文字以上）を設定してください。パスワード欄に入力してから再度ログインしてください。');
+        return;
+      }
+
       setTrainerSession({
         email: data.trainer.email,
         id: data.trainer.id,
